@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "rprz-bot"
+version = "0.1.0"
+description = "Telegram bot for defect reports"
+authors = ["Your Name <your.email@example.com>"]
+
+[tool.poetry.dependencies]
+python = "3.12"
+telebot = "^0.0.5"
+pytest = "^8.2.0"
+pytest-cov = "^4.1.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
