@@ -74,7 +74,7 @@ def start(message): # Обработчик команды /start
     # bot.set.state - устанавливает текущее состояние бота для пользователя
     # BotStates.main_menu - это состояние, которое мы создали в стартовом скрипте
     # chat_id - это ID чата, для которого мы хотим установить состояние
-    bot.set.state(chat_id, BotStates.main_menu)  # Устанавливаем состояние
+    bot.set_state(chat_id, BotStates.main_menu)  # Устанавливаем состояние
 
     #user - пользователь
     # chat_id - id чата (взаимодействие с кок)
@@ -240,22 +240,55 @@ def save_to_db(chat_id):
 
 # === ШАГ 10: Просмотр актов пользователя ===
 @bot.message_handler(commands=['view_acts'])
-def view_acts(message):
+def view_acts(message, page=0, page_size=5):
     chat_id = message.chat.id
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    
     conn = sqlite3.connect('acts.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT act_number FROM acts WHERE chat_id = ?", (chat_id,))
+    
+    # Общее количество актов
+    cursor.execute("SELECT COUNT(*) FROM acts WHERE chat_id = ?", (chat_id,))
+    total_acts = cursor.fetchone()[0]
+    
+    # Получаем акты для текущей страницы
+    cursor.execute(
+        "SELECT act_number FROM acts WHERE chat_id = ? LIMIT ? OFFSET ?",
+        (chat_id, page_size, page * page_size)
+    )
+    
     acts = cursor.fetchall()
     conn.close()
-    if not acts:
-        bot.send_message(chat_id, "У вас пока нет сохранённых актов.", reply_markup=back_markup)
-        return
+    
+    # Добавляем кнопки навигации
+    if page > 0:
+        markup.add(types.KeyboardButton("⬅️ Назад"))
+        
     for (act_num,) in acts:
         markup.add(types.KeyboardButton(act_num))
+    
+    if (page + 1) * page_size < total_acts:
+        markup.add(types.KeyboardButton("➡️ Вперед"))
+    
     markup.add(btn_back)
-    bot.send_message(chat_id, "Выберите номер акта:", reply_markup=markup)
-    bot.register_next_step_handler(message, act_photos)
+    
+    msg = bot.send_message(
+        chat_id,
+        f"Страница {page+1}\nВыберите номер акта:",
+        reply_markup=markup
+    )
+    bot.register_next_step_handler(msg, lambda m: handle_pagination(m, page))
+
+def handle_pagination(message, current_page):
+    chat_id = message.chat.id
+    text = message.text
+    
+    if text == "➡️ Вперед":
+        view_acts(message, page=current_page + 1)
+    elif text == "⬅️ Назад":
+        view_acts(message, page=max(0, current_page - 1))
+    else:
+        act_photos(message)
 
 # === ШАГ 11: Отправка фото по выбранному акту ===
 def act_photos(message):
