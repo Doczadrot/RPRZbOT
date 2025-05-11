@@ -31,6 +31,7 @@ from langchain_openai import ChatOpenAI # ✅ Используем ChatOpenAI д
 # from langchain_community.chat_models import ChatDeepseek # <-- Этот импорт больше не нужен
 
 
+<<<<<<< HEAD
 # --- Настройка и Конфигурация --- ⚙️
 load_dotenv() # ✅ Загружаем переменные окружения из файла .env. Убедитесь, что файл .env существует!
 
@@ -426,3 +427,18 @@ if __name__ == "__main__":
                  print(f"[ERROR] Ошибка при выполнении тестового поиска по старой базе: {e}")
         else:
             print("[DEBUG] Старый индекс также не найден или не может быть загружен. Поиск невозможен.")
+=======
+DEEPSEEK_API_KEY = "000"
+DEEPSEEK_API_URL = "https://api.deepseek.com/models"
+DEEPSEEK_MODEL_NAME = 'deepseek-chat'
+EMBEDDING_MODEL_NAME = 'ВАША_МОДЕЛЬ_ЭМБЕДДИНГОВ'
+DOCUMENTS_DIR = './documents'
+# Путь к папке, где будет сохраняться индекс базы знаний (векторы документов). 📊
+# Это чтобы бот "помнил" обработанные документы между запусками.
+INDEX_PERSIST_DIR = './vector_index'
+ADMIN_USER_IDS = [ 898852116, ]
+
+
+os.makedirs(DOCUMENTS_DIR, exist_ok=exist_ok) # Создание папки для документов.
+os.makedirs(INDEX_PERSIST_DIR, exist_ok=exist_ok) # Создание папки для индекса базы знаний.
+>>>>>>> fa6a4e064086aa7f0b7f702b5cdbc1d2b29301a8

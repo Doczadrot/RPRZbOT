@@ -8,6 +8,7 @@
 
 
 import os
+import time
 from loguru import logger
 from langchain_community.vectorstores import FAISS
 
@@ -22,6 +23,7 @@ def get_index_db():
     иначе происходит чтение PDF-документов и создание новой базы.
     """
     logger.debug('...get_index_db')
+    start_time = time.time()
     # Создание векторных представлений (Embeddings)
     logger.debug('Embeddings')
     from langchain_huggingface import HuggingFaceEmbeddings
@@ -32,7 +34,9 @@ def get_index_db():
         model_name=model_id,
         model_kwargs=model_kwargs
     )
-
+    
+    load_time = time.time() - start_time
+    logger.debug(f'Embeddings загружены за {load_time:.2f} секунд')
     db_file_name = 'db/db_01'
     # Загрузка векторной Базы-Знаний из файла
     logger.debug('Загрузка векторной Базы-Знаний из файла')
@@ -85,10 +89,12 @@ def get_index_db():
     return db
 
 def get_message_content(topic, db, NUMBER_RELEVANT_CHUNKS):
-    """
-        Функция для извлечения релевантных кусочков текста из Базы-Знаний.
-        Выполняется поиск по схожести, извлекаются top-N релевантных частей.
-    """
+    start_search = time.time()
+    docs = db.similarity_search(topic, k = NUMBER_RELEVANT_CHUNKS)
+    search_duration = time.time() - start_search
+    
+    logger.debug(f'Поиск по FAISS выполнен за {search_duration:.2f} сек')
+    logger.debug(f'Среднее время на чанк: {search_duration/NUMBER_RELEVANT_CHUNKS:.4f} сек')
     # Similarity search
     import re
     logger.debug('...get_message_content: Similarity search')
@@ -100,12 +106,8 @@ def get_message_content(topic, db, NUMBER_RELEVANT_CHUNKS):
 
 
 def get_model_response(topic, message_content):
-    """
-        Функция для генерации ответа модели на основе переданного контекста и вопроса.
-        Используется LLM для создания ответа, используя переданный контекст.
-    """
-    logger.debug('...get_model_response')
-
+    start_inference = time.time()
+    
     # Загрузка модели для обработки языка (LLM)
     from langchain_ollama import ChatOllama
     local_llm = "yandex/YandexGPT-5-Lite-8B-instruct-GGUF"  # Проверьте доступность модели
@@ -127,6 +129,14 @@ def get_model_response(topic, message_content):
     from langchain_core.messages import HumanMessage
     rag_prompt_formatted = rag_prompt.format(context=message_content, question=topic)
     generation = llm.invoke([HumanMessage(content=rag_prompt_formatted)])
+    
+    inference_time = time.time() - start_inference
+    tokens_per_sec = len(generation.content.split()) / inference_time
+    
+    logger.debug(f'Генерация ответа: {inference_time:.2f} сек')
+    logger.debug(f'Скорость генерации: {tokens_per_sec:.1f} токенов/сек')
+    
+    return generation.content
     model_response = generation.content
     logger.debug(model_response)
     return model_response
