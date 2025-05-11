@@ -65,3 +65,6 @@
 2025-05-11T18:27:36.961231+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
 2025-05-11T18:27:36.963274+0300 DEBUG ...get_model_response
 2025-05-11T18:27:41.573156+0300 DEBUG LLM
+2025-05-11T20:14:32.306055+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-11T20:14:32.307646+0300 DEBUG ...get_model_response
+2025-05-11T20:14:35.800643+0300 DEBUG LLM
