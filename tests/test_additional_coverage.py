@@ -64,6 +64,59 @@ def create_mock_message(chat_id, text=None, photo=None):
     return message
 
 
+class TestRAGFunctionality(unittest.TestCase):
+    """Тесты для проверки работы Нейропомощника и RAG-функционала."""
+
+    def setUp(self):
+        self.mock_bot = MagicMock()
+        self.patcher_bot = patch('src.RPRZBOT.bot', self.mock_bot)
+        self.patcher_bot.start()
+        self.patcher_rag = patch('src.RPRZBOT.rag_db', MagicMock())
+        self.patcher_rag.start()
+
+    def tearDown(self):
+        self.patcher_bot.stop()
+        self.patcher_rag.stop()
+
+    def test_rag_successful_query(self):
+        """Тест успешного выполнения RAG-запроса."""
+        chat_id = 15001
+        message = create_mock_message(chat_id, text="Как провести калибровку?")
+        
+        with patch('src.RPRZBOT.rag_service.process_user_query_with_rag') as mock_rag:
+            mock_rag.return_value = "Ответ от нейропомощника"
+            
+            process_rag_query(message)
+            
+            self.mock_bot.send_message.assert_any_call(chat_id, "⏳ Ищу ответ в базе знаний...")
+            self.mock_bot.send_message.assert_any_call(chat_id, "Ответ от нейропомощника", reply_markup=main_menu_keyboard)
+
+    def test_rag_database_unavailable(self):
+        """Тест обработки недоступности базы знаний RAG."""
+        chat_id = 15002
+        message = create_mock_message(chat_id, text="Вопрос")
+        
+        with patch('src.RPRZBOT.rag_db', None):
+            process_rag_query(message)
+            
+            self.mock_bot.send_message.assert_called_with(
+                chat_id, 
+                "❌ Извините, база знаний Нейропомощника сейчас недоступна. Пожалуйста, попробуйте позже.",
+                reply_markup=main_menu_keyboard
+            )
+
+    def test_rag_back_button_handling(self):
+        """Тест обработки кнопки 'Назад' во время ввода вопроса."""
+        chat_id = 15003
+        message = create_mock_message(chat_id, text="Назад")
+        
+        with patch('src.RPRZBOT.start') as mock_start:
+            process_rag_query(message)
+            
+            mock_start.assert_called_once_with(message)
+            self.mock_bot.send_message.assert_not_called()
+
+
 class TestEdgeCases(unittest.TestCase):
     """Тесты для проверки граничных случаев и редких сценариев."""
     
@@ -205,6 +258,34 @@ class TestEdgeCases(unittest.TestCase):
         )
         # Проверяем, что зарегистрирован обработчик следующего шага
         self.mock_bot.register_next_step_handler.assert_called_once_with(message, act_photos)
+
+
+class TestRAGErrorHandling(unittest.TestCase):
+    """Тесты обработки ошибок в RAG-пайплайне."""
+
+    def setUp(self):
+        self.mock_bot = MagicMock()
+        self.patcher_bot = patch('src.RPRZBOT.bot', self.mock_bot)
+        self.patcher_bot.start()
+
+    def tearDown(self):
+        self.patcher_bot.stop()
+
+    @patch('src.RPRZBOT.rag_service.process_user_query_with_rag')
+    def test_rag_processing_error(self, mock_rag):
+        """Тест обработки исключения в RAG-пайплайне."""
+        chat_id = 16001
+        message = create_mock_message(chat_id, text="Важный вопрос")
+        mock_rag.side_effect = Exception("Ошибка обработки")
+
+        process_rag_query(message)
+
+        self.mock_bot.send_message.assert_any_call(chat_id, "⏳ Ищу ответ в базе знаний...")
+        self.mock_bot.send_message.assert_any_call(
+            chat_id,
+            "❌ Произошла внутренняя ошибка при обработке вашего запроса.",
+            reply_markup=main_menu_keyboard
+        )
 
 
 class TestCommandHandlers(unittest.TestCase):

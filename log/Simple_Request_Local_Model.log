@@ -1,0 +1,67 @@
+2025-05-10T17:24:14.650558+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-10T17:24:14.651142+0300 DEBUG ...get_model_response
+2025-05-10T17:24:59.554114+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-10T17:24:59.555390+0300 DEBUG ...get_model_response
+2025-05-10T17:25:02.096742+0300 DEBUG LLM
+2025-05-10T17:47:37.503966+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-10T17:47:37.504961+0300 DEBUG ...get_model_response
+2025-05-10T17:47:40.113163+0300 DEBUG LLM
+2025-05-10T18:36:23.945330+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-10T18:36:23.946408+0300 DEBUG ...get_model_response
+2025-05-10T18:36:26.816599+0300 DEBUG LLM
+2025-05-10T18:37:07.131946+0300 DEBUG RAG (Retrieval-Augmented Generation) is a type of AI model that combines the strengths of retrieval-based and generation-based approaches to produce high-quality text outputs. It retrieves relevant information from a large corpus and then uses this information to generate new, coherent text that meets specific requirements or prompts.
+2025-05-10T18:37:25.648648+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-10T18:37:25.649641+0300 DEBUG ...get_model_response
+2025-05-10T18:37:27.764571+0300 DEBUG LLM
+2025-05-10T18:38:02.080758+0300 DEBUG RAG (Retrieval-Augmented Generation) is a type of AI model that combines the strengths of retrieval-based and generation-based approaches to produce high-quality text outputs. It retrieves relevant information from a large corpus and then uses this information to generate new text, rather than simply generating text from scratch. This approach allows RAG models to produce more accurate and informative responses by leveraging existing knowledge and adapting it to the specific context.
+2025-05-10T18:42:16.795115+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-10T18:42:16.796301+0300 DEBUG ...get_model_response
+2025-05-10T18:42:20.291719+0300 DEBUG LLM
+2025-05-10T18:42:51.141919+0300 DEBUG RAG (Retrieval-Augmented Generation) is a type of AI model that combines the strengths of retrieval-based and generation-based approaches to produce high-quality text outputs. It retrieves relevant information from a large corpus and then uses this information to generate new, coherent text that meets specific requirements or prompts.
+2025-05-10T18:44:34.436870+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-10T18:44:34.437869+0300 DEBUG ...get_model_response
+2025-05-10T18:44:36.281383+0300 DEBUG LLM
+2025-05-10T18:44:51.467109+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-10T18:44:51.467109+0300 DEBUG ...get_model_response
+2025-05-10T18:44:53.487870+0300 DEBUG LLM
+2025-05-10T18:45:37.341932+0300 DEBUG RAG (Retrieval-Augmented Generation) - это метод машинного обучения, который сочетает в себе два подхода: retrieval и generation. Retrieval-approach подразумевает извлечение уже существующих текстов или фрагментов текстов, которые наиболее близки к задаче, а generation-approach - генерация нового текста на основе этих фрагментов. RAG позволяет создавать более информативные и точные тексты, чем традиционные методы генерации текста.
+2025-05-10T19:14:24.055520+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-10T19:14:24.056568+0300 DEBUG ...get_model_response
+2025-05-10T19:15:07.715419+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-10T19:15:07.715942+0300 DEBUG ...get_model_response
+2025-05-10T19:15:09.705568+0300 DEBUG LLM
+2025-05-10T19:16:10.130466+0300 DEBUG RAG (Retrieval-Augmented Generation) - это метод машинного обучения, который сочетает в себе два подхода: retrieval и generation. Retrieval-approach подразумевает извлечение уже существующих текстов или фрагментов текстов, которые наиболее близки к задаче, а generation-approach - генерация нового текста на основе этих фрагментов. RAG позволяет создавать более информативные и точные тексты, чем традиционные методы генерации текста.
+2025-05-10T19:32:42.014774+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-10T19:32:42.015775+0300 DEBUG ...get_model_response
+2025-05-10T19:32:44.127724+0300 DEBUG LLM
+2025-05-11T18:05:06.442892+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-11T18:05:06.443894+0300 DEBUG ...get_model_response
+2025-05-11T18:05:10.042610+0300 DEBUG LLM
+2025-05-11T18:08:00.521694+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-11T18:08:00.522660+0300 DEBUG ...get_model_response
+2025-05-11T18:08:02.684547+0300 DEBUG LLM
+2025-05-11T18:08:36.505099+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-11T18:08:36.506958+0300 DEBUG ...get_model_response
+2025-05-11T18:08:39.430950+0300 DEBUG LLM
+2025-05-11T18:09:24.642310+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-11T18:09:24.646783+0300 DEBUG ...get_model_response
+2025-05-11T18:09:27.458671+0300 DEBUG LLM
+2025-05-11T18:09:45.298046+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-11T18:09:45.298844+0300 DEBUG ...get_model_response
+2025-05-11T18:09:47.698498+0300 DEBUG LLM
+2025-05-11T18:10:07.229576+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-11T18:10:07.231576+0300 DEBUG ...get_model_response
+2025-05-11T18:10:09.883971+0300 DEBUG LLM
+2025-05-11T18:10:18.109247+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-11T18:10:18.112467+0300 DEBUG ...get_model_response
+2025-05-11T18:10:20.582406+0300 DEBUG LLM
+2025-05-11T18:10:29.284148+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-11T18:10:29.285718+0300 DEBUG ...get_model_response
+2025-05-11T18:10:31.812187+0300 DEBUG LLM
+2025-05-11T18:10:51.235845+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-11T18:10:51.238825+0300 DEBUG ...get_model_response
+2025-05-11T18:10:53.874798+0300 DEBUG LLM
+2025-05-11T18:24:10.143020+0300 DEBUG  RAG (Retrieval-Augmented Generation) — это подход в области искусственного интеллекта, который объединяет генерацию текста с возможностью извлечения релевантной информации из внешних источников для улучшения качества ответов. Это позволяет моделям учитывать актуальные данные и предоставлять более точные и информативные ответы.
+2025-05-11T18:27:36.961231+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-05-11T18:27:36.963274+0300 DEBUG ...get_model_response
+2025-05-11T18:27:41.573156+0300 DEBUG LLM

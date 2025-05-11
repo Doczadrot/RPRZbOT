@@ -3,13 +3,16 @@ from telebot import types  # Импортируем типы для создан
 import sqlite3  # Модуль для работы с базой данных SQLite (хранение актов)
 import json  # Для сериализации/десериализации списков фото
 import os  # Для работы с файловой системой (создание папок, сохранение фото)
+from dotenv import load_dotenv  # Для загрузки переменных окружения из .env файла
 from telebot.handler_backends import State, StatesGroup  # для определения состояний пользователя
 from telebot.storage import StateMemoryStorage # для того что бы бот запоминал состояние пользователя
 
 # === ШАГ 1: Создание экземпляра бота ===
+load_dotenv() # Загружаем переменные окружения из .env файла
+
 state_storage = StateMemoryStorage() #Память состояний -  что бы бот запоминал состояние пользователя
 
-bot = telebot.TeleBot(, state_storage = state_storage)  # Создаём объект бота с токеном (токен — ключ для управления ботом)
+bot = telebot.TeleBot(os.getenv('BOT_TOKEN'), state_storage=state_storage)  # Создаём объект бота с токеном (токен — ключ для управления ботом)
 
 
 # === ШАГ 2: Глобальные переменные для хранения состояния ===

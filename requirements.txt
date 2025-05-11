@@ -1,7 +1,28 @@
 # Основные зависимости
-pyTelegramBotAPI>=4.10.0
-sqlite3>=3.0.0
+pyTelegramBotAPI==4.12.0
+sentence-transformers==2.5.1
+torch==2.3.0
+langchain-huggingface==0.0.8
+numpy==1.26.4  # Добавьте эту строку
+faiss-cpu==1.8.0
+openai==1.30.1
+langchain-openai==0.1.2
+langchain-community==0.2.0
+PyPDF2==3.0.1
+python-docx==1.1.0
+python-dotenv==0.21.0  # Для загрузки переменных окружения из .env файла
 
 # Зависимости для тестирования
-unittest2>=1.1.0
-coverage>=7.0.0
+unittest2==1.1.0
+coverage==7.5.0
+
+# База знаний RAG
+Конфигурация в файле <mcfile name="Simple_RAG_PDF.py" path="c:\Users\kisil\Desktop\RPRZ\src\Python\Simple_RAG_PDF.py"></mcfile> работает с:
+- PDF-документами из папки `C:\Users\kisil\Desktop\RPRZ\pdf`
+- Векторным хранилищем в `C:\Users\kisil\Desktop\RPRZ\db\db_01`
+
+# Обновленные зависимости
+Файл <mcfile name="requirements.txt" path="c:\Users\kisil\Desktop\RPRZ\requirements.txt"></mcfile> содержит актуальные версии библиотек:
+langchain-huggingface==0.0.8
+faiss-cpu==1.8.0
+sentence-transformers==2.5.1
