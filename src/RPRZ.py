@@ -16,11 +16,8 @@ bot = telebot.TeleBot(os.getenv('BOT_TOKEN'), state_storage=state_storage)  # С
 
 
 # === ШАГ 2: Глобальные переменные для хранения состояния ===
-user_act_number = {}   # chat_id -> номер акта (чтобы знать, какой акт сейчас регистрирует пользователь)
-bot_status = {}  # chat_id -> текущее состояние пользователя (например, "ожидание фото")
-user_photos = {}  # chat_id -> список путей к фото (чтобы не потерять фото до сохранения)
-user_history = {}  # chat_id -> история действий пользователя (для кнопки "Назад")
-bot_status_state = {}  # chat_id -> состояние меню (например, 'main_menu')
+bot_status = {}  # текущее состояние пользователя
+user_history = {}  # история действий пользователя
 
 
 
@@ -49,7 +46,6 @@ def init_db(): #инициализация базы данных
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS acts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            chat_id INTEGER,
             act_number TEXT UNIQUE,
             photo_urls TEXT 
         )
@@ -153,9 +149,7 @@ def process_act_number(message):
             bot.send_message(chat_id, 'Этот номер уже вводился. Введите другой:', reply_markup=back_markup)
             bot.register_next_step_handler(message, process_act_number)
             return
-        user_act_number[chat_id] = text  # Сохраняем номер акта
         bot_status[chat_id] = 'ожидание фото'  # Ставим статус ожидания фото
-        user_photos[chat_id] = []  # Готовим список для фото
         bot.send_message(
             chat_id,
             f'Номер акта {text} зарегистрирован. Жду 1–3 фото.',
@@ -221,8 +215,8 @@ def save_to_db(chat_id):
         conn = sqlite3.connect('acts.db')
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO acts (chat_id, act_number, photo_urls) VALUES (?, ?, ?)",
-            (chat_id, act_number, json.dumps(photos))
+            "INSERT INTO acts (act_number, photo_urls) VALUES (?, ?)",
+            (act_number, json.dumps(photos))
         )
         conn.commit()
         print(f"Акт {act_number} сохранён.")
@@ -237,8 +231,6 @@ def save_to_db(chat_id):
     finally:
         if 'conn' in locals():
             conn.close()
-        user_act_number.pop(chat_id, None)
-        user_photos.pop(chat_id, None)
         bot_status.pop(chat_id, None)
 
 # === ШАГ 10: Просмотр актов пользователя ===
@@ -251,13 +243,13 @@ def view_acts(message, page=0, page_size=5):
     cursor = conn.cursor()
     
     # Общее количество актов
-    cursor.execute("SELECT COUNT(*) FROM acts WHERE chat_id = ?", (chat_id,))
+    cursor.execute("SELECT COUNT(*) FROM acts", ())
     total_acts = cursor.fetchone()[0]
     
     # Получаем акты для текущей страницы
     cursor.execute(
-        "SELECT act_number FROM acts WHERE chat_id = ? LIMIT ? OFFSET ?",
-        (chat_id, page_size, page * page_size)
+        "SELECT act_number FROM acts LIMIT ? OFFSET ?",
+            (page_size, page * page_size)
     )
     
     acts = cursor.fetchall()
@@ -304,8 +296,8 @@ def act_photos(message):
         conn = sqlite3.connect('acts.db')
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT photo_urls FROM acts WHERE chat_id = ? AND act_number = ?",
-            (chat_id, act_number)
+            "SELECT photo_urls FROM acts WHERE act_number = ?",
+            (act_number,)
         )
         row = cursor.fetchone()
         conn.close()

@@ -345,7 +345,7 @@ def process_act_number(message):
         try:
             conn = sqlite3.connect('acts.db')
             cursor = conn.cursor()
-            cursor.execute("SELECT 1 FROM acts WHERE chat_id = ? AND act_number = ?", (chat_id, text))
+            cursor.execute("SELECT 1 FROM acts WHERE act_number = ?", (text,))
             exists = cursor.fetchone() is not None
             conn.close()
             conn = None
@@ -522,13 +522,13 @@ def view_acts(message, page=0, page_size=5):
     cursor = conn.cursor()
     
     # Общее количество актов
-    cursor.execute("SELECT COUNT(*) FROM acts WHERE chat_id = ?", (chat_id,))
+    cursor.execute("SELECT COUNT(*) FROM acts", ())
     total_acts = cursor.fetchone()[0]
     
     # Получаем акты для текущей страницы
     cursor.execute(
-        "SELECT act_number FROM acts WHERE chat_id = ? LIMIT ? OFFSET ?",
-        (chat_id, page_size, page * page_size)
+        "SELECT act_number FROM acts LIMIT ? OFFSET ?",
+            (page_size, page * page_size)
     )
     
     acts = cursor.fetchall()
@@ -619,8 +619,8 @@ def act_photos(message):
         conn = sqlite3.connect('acts.db')
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT photo_urls FROM acts WHERE chat_id = ? AND act_number = ?",
-            (chat_id, act_number)
+            "SELECT photo_urls FROM acts WHERE act_number = ?",
+            (act_number,)
         )
         row = cursor.fetchone()
         conn.close()
