@@ -101,7 +101,8 @@ def get_or_create_vector_db():
                     # ✅ Убедитесь, что обрабатываются только нужные файлы (например, PDF)
                     if file.lower().endswith(".pdf"):
                         file_path = os.path.join(root, file)
-                        logger.debug(f'Загрузка файла: {file_path}')
+                        logger.debug(f'Загрузка файла: {file_path}')  # ✅ Безопасно
+                        logger.error(f'Ошибка в {user_history[chat_id]}')  # ⚠️ Нужна маскировка
                         try:
                              loader = PyPDFLoader(file_path)
                              documents.extend(loader.load())

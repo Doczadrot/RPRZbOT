@@ -26,7 +26,7 @@ def get_index_db():
     logger.debug('Embeddings')
     from langchain_huggingface import HuggingFaceEmbeddings
     model_id = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
-    model_kwargs = {'device': 'cpu'} # Настройка для использования CPU (можно переключить на GPU)
+    model_kwargs = {'device': 'cuda'} # Настройка для использования GPU
     # model_kwargs = {'device': 'cuda'}
     embeddings = HuggingFaceEmbeddings(
         model_name=model_id,

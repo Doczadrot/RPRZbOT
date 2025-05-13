@@ -10,6 +10,8 @@
 import os
 from loguru import logger
 from langchain_community.vectorstores import FAISS
+from langchain_huggingface import HuggingFaceEmbeddings
+import torch  # Добавляем импорт
 
 # Настройка логирования с использованием loguru
 logger.add("log/02_Simple_RAG_PDF.log", format="{time} {level} {message}", level="DEBUG", rotation="100 KB", compression="zip")
@@ -25,9 +27,12 @@ def get_index_db():
     # Создание векторных представлений (Embeddings)
     logger.debug('Embeddings')
     from langchain_huggingface import HuggingFaceEmbeddings
+    import torch  # Добавляем импорт
+    
     model_id = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
-    model_kwargs = {'device': 'cpu'} # Настройка для использования CPU (можно переключить на GPU)
+    # model_kwargs = {'device': 'cpu'} # Настройка для использования CPU (можно переключить на GPU)
     # model_kwargs = {'device': 'cuda'}
+    model_kwargs = {'device': 'cuda' if torch.cuda.is_available() else 'cpu'}  # Автовыбор
     embeddings = HuggingFaceEmbeddings(
         model_name=model_id,
         model_kwargs=model_kwargs
@@ -67,7 +72,7 @@ def get_index_db():
         logger.debug('Разделение на chunks')
         from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=0)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=128, chunk_overlap=0)
         source_chunks = text_splitter.split_documents(documents)
         logger.debug(type(source_chunks))
         logger.debug(len(source_chunks))
