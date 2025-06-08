@@ -114,8 +114,14 @@ def get_model_response(topic, message_content):
     # Загрузка модели для обработки языка (LLM)
     from langchain_ollama import ChatOllama
     logger.debug('LLM')
-    local_llm = "akdengi/saiga-llama3-8b:latest"  # Проверьте доступность модели
-    llm = ChatOllama(model=local_llm, temperature=0)
+    local_llm = "akdengi/saiga-llama3-8b:latest" # Или выбранная вами модель
+    llm = ChatOllama(
+        model=local_llm, 
+        temperature=0,
+         # Держать модель загруженной постоянно
+        # num_gpu=20, # Пример: указать количество слоев на GPU (подберите экспериментально)
+        # num_thread=4 # Пример: указать количество потоков CPU (подберите экспериментально)
+    )
 
 
     # Промпт
@@ -140,7 +146,7 @@ def get_model_response(topic, message_content):
 if __name__ == "__main__":
     # Основной блок программы: инициализация, построение базы и генерация ответа
     db = get_index_db()
-    NUMBER_RELEVANT_CHUNKS = 3 # Количество релевантных кусков для извлечения
+    NUMBER_RELEVANT_CHUNKS = 2 # Попробуйте уменьшить это значение
     topic = 'Порядок действий при выявлении НП?' # Вопрос пользователя
     logger.debug(topic)
     message_content = get_message_content(topic, db, NUMBER_RELEVANT_CHUNKS)
