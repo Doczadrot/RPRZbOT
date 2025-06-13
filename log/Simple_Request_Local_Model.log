@@ -78,3 +78,14 @@
 2025-05-13T17:26:13.106059+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
 2025-05-13T17:26:13.118417+0300 DEBUG ...get_model_response
 2025-05-13T17:26:16.404041+0300 DEBUG LLM
+2025-06-12T11:08:12.359178+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-06-12T11:08:12.360171+0300 DEBUG ...get_model_response
+2025-06-12T11:08:15.681187+0300 DEBUG LLM
+2025-06-12T11:08:47.665683+0300 DEBUG RAG (Retrieval-Augmented Generation) - это метод генерации текста, который включает в себя поиск и анализ информации из базы данных, а затем добавляет эту информацию в генерируемый текст.
+2025-06-12T11:12:14.148256+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-06-12T11:12:14.151268+0300 DEBUG ...get_model_response
+2025-06-12T11:12:17.518059+0300 DEBUG LLM
+2025-06-12T11:12:39.578891+0300 DEBUG RAG (Retrieval-Augmented Generation) - это метод генерации текста, который включает в себя поиск и анализ информации из базы данных, а затем генерацию текста на основе найденных данных.
+2025-06-12T11:16:00.612706+0300 DEBUG Объясни понятие RAG (Retrieval-Augmented Generation).
+2025-06-12T11:16:00.613706+0300 DEBUG ...get_model_response
+2025-06-12T11:16:02.954286+0300 DEBUG LLM

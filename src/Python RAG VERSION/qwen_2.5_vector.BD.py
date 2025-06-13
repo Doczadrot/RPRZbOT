@@ -1,7 +1,7 @@
 """
 Описание модуля  
 Этот модуль реализует метод генерации ответа на заданную тему,
-используя локальную GGUF‑модель Vikhr‑Qwen‑2.5‑0.5B-instruct через Ollama.
+используя локальную GGUF‑модель "qwen2.5vl:3b" через Ollama.
 Основные шаги: загрузка/обновление FAISS, поиск по схожести контекста,
 и вызов модели для генерации.
 """
@@ -24,7 +24,7 @@ logger.add(
 def get_index_db():
     logger.debug('Начало get_index_db') # Запись в лог о начале работы функции
     # Идентификатор модели для создания эмбеддингов (векторных представлений текста)
-    model_id = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
+    model_id = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2' #модель  для имбедингов
     # Определение устройства для вычислений: 'cuda' (GPU) если доступно, иначе 'cpu'
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     # Инициализация модели для создания эмбеддингов
@@ -86,9 +86,9 @@ def get_model_response(question: str, context: str) -> str:
 
     # Инициализация модели ChatOllama с заданными параметрами
     llm = ChatOllama(
-        model="hf.co/Vikhrmodels/Vikhr-Qwen-2.5-0.5B-instruct-GGUF:q4_K_M", # Имя модели
+        model="qwen2.5vl:3b", # Имя модели
         temperature=0.0, # Температура генерации (0.0 делает ответы более детерминированными)
-        num_gpu=0, # Отключение использования GPU (если нет или не требуется)
+        num_gpu=1, # Разделим работу на видюху
         num_thread=4, # Количество потоков CPU для обработки (оптимизация производительности)
         stream=False # Отключение потоковой передачи ответа (получаем ответ целиком)
     )
@@ -107,7 +107,7 @@ def get_model_response(question: str, context: str) -> str:
 
 if __name__ == "__main__": # Этот блок выполняется только при прямом запуске файла
     db = get_index_db() # Получаем или создаем базу данных FAISS
-    question = "Порядок действий при выявлении НП?" # Пример вопроса
+    question = "Какой порядок оформления акта о браке?" # Пример вопроса
     # Получаем релевантный контекст из базы данных (3 самых релевантных чанка)
     ctx = get_relevant_context(question, db, top_k=3)
     answer = get_model_response(question, ctx) # Получаем ответ от модели

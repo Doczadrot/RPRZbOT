@@ -31,7 +31,7 @@ from langchain_openai import ChatOpenAI # ✅ Используем ChatOpenAI д
 # from langchain_community.chat_models import ChatDeepseek # <-- Этот импорт больше не нужен
 
 
-<<<<<<< HEAD
+
 # --- Настройка и Конфигурация --- ⚙️
 load_dotenv() # ✅ Загружаем переменные окружения из файла .env. Убедитесь, что файл .env существует!
 
