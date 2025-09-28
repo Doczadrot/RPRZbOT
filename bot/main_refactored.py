@@ -223,44 +223,45 @@ class BotApplication:
         
         data = user_state['data']
         
-        if update.message.photo or update.message.video:
-            # Сохраняем информацию о медиафайле
-            if update.message.photo:
-                file_id = update.message.photo[-1].file_id
-                file_size = update.message.photo[-1].file_size
-                file_type = 'photo'
-            else:  # video
-                file_id = update.message.video.file_id
-                file_size = update.message.video.file_size
-                file_type = 'video'
-            
-            # Проверяем размер файла
-            if not self.danger_service.validate_media_file(file_size, file_type):
-                max_size = "20 МБ" if file_type == 'photo' else "300 МБ"
-                await update.message.reply_text(
-                    f"❌ Файл слишком большой. Максимальный размер {file_type}: {max_size}",
-                    reply_markup=self.keyboard_factory.create_back_button()
-                )
-                return
-            
-            if 'media_files' not in data:
-                data['media_files'] = []
-            
-            data['media_files'].append({
-                'file_id': file_id,
-                'file_type': file_type,
-                'file_size': file_size
-            })
-            
-            await update.message.reply_text(
-                f"✅ {file_type == 'photo' and 'Фото' or 'Видео'} добавлено. Можете прикрепить еще файлы или продолжить.",
-                reply_markup=self.keyboard_factory.create_media_continue_buttons()
-            )
+        if update.message.photo:
+            # Обрабатываем фото
+            file_id = update.message.photo[-1].file_id
+            file_size = update.message.photo[-1].file_size
+            file_type = 'photo'
+        elif update.message.video:
+            # Обрабатываем видео
+            file_id = update.message.video.file_id
+            file_size = update.message.video.file_size
+            file_type = 'video'
         else:
             await update.message.reply_text(
                 "Пожалуйста, прикрепите фото или видео, или нажмите 'Пропустить'",
                 reply_markup=self.keyboard_factory.create_media_buttons()
             )
+            return
+        
+        # Проверяем размер файла
+        if not self.danger_service.validate_media_file(file_size, file_type):
+            max_size = "20 МБ" if file_type == 'photo' else "300 МБ"
+            await update.message.reply_text(
+                f"❌ Файл слишком большой. Максимальный размер {file_type}: {max_size}",
+                reply_markup=self.keyboard_factory.create_back_button()
+            )
+            return
+        
+        if 'media_files' not in data:
+            data['media_files'] = []
+        
+        data['media_files'].append({
+            'file_id': file_id,
+            'file_type': file_type,
+            'file_size': file_size
+        })
+        
+        await update.message.reply_text(
+            f"✅ {file_type == 'photo' and 'Фото' or 'Видео'} добавлено. Можете прикрепить еще файлы или продолжить.",
+            reply_markup=self.keyboard_factory.create_media_continue_buttons()
+        )
     
     async def handle_location(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Обработчик геолокации"""
