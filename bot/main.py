@@ -113,6 +113,126 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=get_main_menu()
     )
 
+# Обработчик команды /my_history
+async def my_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    user_id = user.id
+    
+    # Логируем активность
+    log_activity(user_id, user.username, "history_requested")
+    
+    try:
+        # Читаем логи активности
+        activity_file = 'logs/activity.csv'
+        if not os.path.exists(activity_file):
+            await update.message.reply_text(
+                "📊 **Ваша история**\n\n"
+                "История активности пока пуста.",
+                reply_markup=get_main_menu()
+            )
+            return
+        
+        user_activities = []
+        with open(activity_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if int(row['user_id']) == user_id:
+                    user_activities.append(row)
+        
+        if not user_activities:
+            await update.message.reply_text(
+                "📊 **Ваша история**\n\n"
+                "История активности пока пуста.",
+                reply_markup=get_main_menu()
+            )
+            return
+        
+        # Формируем сообщение с историей
+        text = "📊 **Ваша история активности**\n\n"
+        
+        # Показываем последние 10 записей
+        recent_activities = user_activities[-10:]
+        
+        for activity in recent_activities:
+            timestamp = datetime.fromisoformat(activity['timestamp'])
+            time_str = timestamp.strftime('%d.%m.%Y %H:%M')
+            
+            action_name = {
+                'start_command': '🚀 Запуск бота',
+                'text_message': '💬 Сообщение',
+                'danger_report_started': '🚨 Сообщение об опасности',
+                'incident_saved': '✅ Инцидент сохранен',
+                'shelter_finder_started': '🏠 Поиск убежищ',
+                'safety_consultant_started': '🧑‍🏫 Консультант',
+                'question_asked': '❓ Вопрос задан',
+                'history_requested': '📊 Запрос истории'
+            }.get(activity['action'], activity['action'])
+            
+            text += f"• {time_str} - {action_name}\n"
+            if activity['payload_summary']:
+                text += f"  {activity['payload_summary']}\n"
+            text += "\n"
+        
+        # Добавляем статистику
+        total_actions = len(user_activities)
+        text += f"📈 **Всего действий:** {total_actions}\n"
+        
+        # Подсчитываем типы действий
+        action_counts = {}
+        for activity in user_activities:
+            action = activity['action']
+            action_counts[action] = action_counts.get(action, 0) + 1
+        
+        text += "\n📊 **Статистика:**\n"
+        for action, count in action_counts.items():
+            action_name = {
+                'start_command': 'Запуски бота',
+                'text_message': 'Сообщения',
+                'danger_report_started': 'Сообщения об опасности',
+                'incident_saved': 'Сохраненные инциденты',
+                'shelter_finder_started': 'Поиски убежищ',
+                'safety_consultant_started': 'Обращения к консультанту',
+                'question_asked': 'Заданные вопросы',
+                'history_requested': 'Запросы истории'
+            }.get(action, action)
+            text += f"• {action_name}: {count}\n"
+        
+        # Разбиваем на части, если сообщение слишком длинное
+        if len(text) > 4000:
+            parts = text.split('\n\n')
+            current_part = ""
+            
+            for part in parts:
+                if len(current_part + part) > 4000:
+                    await update.message.reply_text(
+                        current_part,
+                        reply_markup=get_main_menu(),
+                        parse_mode='Markdown'
+                    )
+                    current_part = part + "\n\n"
+                else:
+                    current_part += part + "\n\n"
+            
+            if current_part.strip():
+                await update.message.reply_text(
+                    current_part,
+                    reply_markup=get_main_menu(),
+                    parse_mode='Markdown'
+                )
+        else:
+            await update.message.reply_text(
+                text,
+                reply_markup=get_main_menu(),
+                parse_mode='Markdown'
+            )
+            
+    except Exception as e:
+        logger.error(f"Ошибка получения истории пользователя {user_id}: {e}")
+        await update.message.reply_text(
+            "❌ Ошибка получения истории. Попробуйте позже.",
+            reply_markup=get_main_menu()
+        )
+
 # Обработчик текстовых сообщений
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -974,6 +1094,7 @@ def main():
     
     # Добавляем обработчики
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("my_history", my_history))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, handle_media))
     application.add_handler(MessageHandler(filters.LOCATION, handle_location))
