@@ -1,6 +1,7 @@
 import os
 import logging
 import json
+import csv
 from datetime import datetime
 from dotenv import load_dotenv
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
@@ -32,6 +33,59 @@ def load_placeholder_data():
 # Словарь для хранения состояния пользователей
 user_states = {}
 
+# Функция логирования активности
+def log_activity(user_id, username, action, payload_summary="", response_ref=""):
+    """Логирует активность пользователя в CSV файл"""
+    try:
+        activity_file = 'logs/activity.csv'
+        file_exists = os.path.exists(activity_file)
+        
+        with open(activity_file, 'a', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            
+            # Записываем заголовки, если файл новый
+            if not file_exists:
+                writer.writerow(['timestamp', 'user_id', 'username', 'action', 'payload_summary', 'response_ref'])
+            
+            # Записываем данные
+            writer.writerow([
+                datetime.now().isoformat(),
+                user_id,
+                username or 'Unknown',
+                action,
+                payload_summary[:100],  # Ограничиваем длину
+                response_ref
+            ])
+            
+    except Exception as e:
+        logger.error(f"Ошибка логирования активности: {e}")
+
+# Функция защиты от спама
+def check_spam_protection(user_id):
+    """Проверяет защиту от спама (максимум 10 сообщений в минуту)"""
+    current_time = datetime.now()
+    
+    if user_id not in user_states:
+        user_states[user_id] = {
+            'state': 'idle',
+            'data': {},
+            'message_times': []
+        }
+    
+    # Очищаем старые сообщения (старше минуты)
+    user_states[user_id]['message_times'] = [
+        msg_time for msg_time in user_states[user_id]['message_times']
+        if (current_time - msg_time).total_seconds() < 60
+    ]
+    
+    # Проверяем лимит
+    if len(user_states[user_id]['message_times']) >= 10:
+        return False
+    
+    # Добавляем текущее время
+    user_states[user_id]['message_times'].append(current_time)
+    return True
+
 # Главное меню
 def get_main_menu():
     keyboard = [
@@ -45,6 +99,9 @@ def get_main_menu():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     logger.info(f"Пользователь {user.id} ({user.username}) запустил бота")
+    
+    # Логируем активность
+    log_activity(user.id, user.username, "start_command")
     
     welcome_text = (
         "🛡️ Добро пожаловать в систему безопасности РПРЗ!\n\n"
@@ -62,7 +119,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     user_id = user.id
     
+    # Проверяем защиту от спама
+    if not check_spam_protection(user_id):
+        await update.message.reply_text(
+            "⚠️ Слишком много сообщений. Подождите минуту и попробуйте снова.",
+            reply_markup=get_main_menu()
+        )
+        return
+    
     logger.info(f"Пользователь {user_id} отправил сообщение: {text}")
+    
+    # Логируем активность
+    log_activity(user_id, user.username, "text_message", text[:50])
     
     # Проверяем состояние пользователя для диалога "Сообщите об опасности"
     if user_id in user_states:
@@ -198,6 +266,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Обработчик "Сообщите об опасности"
 async def handle_danger_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    user = update.effective_user
+    
+    # Логируем активность
+    log_activity(user_id, user.username, "danger_report_started")
     
     # Инициализируем состояние пользователя
     user_states[user_id] = {
@@ -429,6 +501,10 @@ async def save_incident(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         logger.info(f"Инцидент сохранен для пользователя {user_id}")
         
+        # Логируем активность
+        log_activity(user_id, update.effective_user.username, "incident_saved", 
+                    f"Description: {data['description'][:30]}...")
+        
     except Exception as e:
         logger.error(f"Ошибка сохранения инцидента: {e}")
 
@@ -534,6 +610,10 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Обработчик "Ближайшее укрытие"
 async def handle_shelter_finder(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    user = update.effective_user
+    
+    # Логируем активность
+    log_activity(user_id, user.username, "shelter_finder_started")
     
     # Инициализируем состояние пользователя
     user_states[user_id] = {
@@ -654,6 +734,10 @@ async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Обработчик "Консультант по безопасности РПРЗ"
 async def handle_safety_consultant(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    user = update.effective_user
+    
+    # Логируем активность
+    log_activity(user_id, user.username, "safety_consultant_started")
     
     # Инициализируем состояние пользователя
     user_states[user_id] = {
@@ -783,6 +867,9 @@ async def handle_question_response(update: Update, context: ContextTypes.DEFAULT
     question = update.message.text
     user_states[user_id]['data']['question'] = question
     user_states[user_id]['state'] = 'question_answered'
+    
+    # Логируем активность
+    log_activity(user_id, update.effective_user.username, "question_asked", question[:50])
     
     # Загружаем шаблоны ответов
     data = load_placeholder_data()
