@@ -148,7 +148,7 @@ class BotApplication:
         self.logger.log_activity(user_id, user.username, "text_message", text[:50])
         
         # Обработка кнопок навигации
-        if text == "⬅️ Назад" or text == "⬅️ Главное меню":
+        if text in ["⬅️🔙 Назад", "🏠⬅️ Главное меню", "⬅️ Назад", "⬅️ Главное меню"]:
             self.state_manager.clear_user_state(user_id)
             await update.message.reply_text(
                 "Главное меню",
@@ -157,11 +157,11 @@ class BotApplication:
             return
         
         # Обработка основных функций
-        if text == "❗ Сообщите об опасности":
+        if text in ["🚨❗ Сообщите об опасности", "❗ Сообщите об опасности"]:
             await self.danger_handler.handle(update, context)
-        elif text == "🏠 Ближайшее укрытие":
+        elif text in ["🏠🛡️ Ближайшее укрытие", "🏠 Ближайшее укрытие"]:
             await self._handle_shelter_finder(update, context)
-        elif text == "🧑‍🏫 Консультант по безопасности РПРЗ":
+        elif text in ["🧑‍🏫📚 Консультант по безопасности РПРЗ", "🧑‍🏫 Консультант по безопасности РПРЗ"]:
             await self._handle_safety_consultant(update, context)
         else:
             await update.message.reply_text(

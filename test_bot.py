@@ -84,7 +84,7 @@ async def test_danger_report_flow():
     context = MockContext()
     
     # Шаг 1: Начало сообщения об опасности
-    update1 = MockUpdate(text="❗ Сообщите об опасности")
+    update1 = MockUpdate(text="🚨❗ Сообщите об опасности")
     await app.handle_message(update1, context)
     print("✅ Шаг 1: Начало сообщения об опасности")
     
@@ -99,12 +99,12 @@ async def test_danger_report_flow():
     print("✅ Шаг 3: Местоположение")
     
     # Шаг 4: Пропуск медиа
-    update4 = MockUpdate(text="⏭️ Пропустить")
+    update4 = MockUpdate(text="⏭️⏩ Пропустить")
     await app.handle_message(update4, context)
     print("✅ Шаг 4: Пропуск медиа")
     
     # Шаг 5: Подтверждение
-    update5 = MockUpdate(text="✅ Отправить сообщение")
+    update5 = MockUpdate(text="✅📤 Отправить сообщение")
     await app.handle_message(update5, context)
     print("✅ Шаг 5: Отправка сообщения")
 
@@ -114,7 +114,7 @@ async def test_shelter_finder():
     print("🧪 Тестируем поиск убежищ...")
     
     app = BotApplication()
-    update = MockUpdate(text="🏠 Ближайшее укрытие")
+    update = MockUpdate(text="🏠🛡️ Ближайшее укрытие")
     context = MockContext()
     
     await app.handle_message(update, context)
@@ -126,7 +126,7 @@ async def test_consultant():
     print("🧪 Тестируем консультанта по безопасности...")
     
     app = BotApplication()
-    update = MockUpdate(text="🧑‍🏫 Консультант по безопасности РПРЗ")
+    update = MockUpdate(text="🧑‍🏫📚 Консультант по безопасности РПРЗ")
     context = MockContext()
     
     await app.handle_message(update, context)

@@ -25,7 +25,7 @@ class DangerReportHandler(BaseHandler):
         user_id = update.effective_user.id
         text = update.message.text
         
-        if text == "❗ Сообщите об опасности":
+        if text in ["🚨❗ Сообщите об опасности", "❗ Сообщите об опасности"]:
             await self._start_danger_report(update, context)
         else:
             await self._handle_danger_flow(update, context)
@@ -113,19 +113,19 @@ class DangerReportHandler(BaseHandler):
         user_id = update.effective_user.id
         text = update.message.text
         
-        if text == "⏭️ Пропустить":
+        if text in ["⏭️⏩ Пропустить", "⏭️ Пропустить"]:
             await self._show_confirmation(update, context, data)
-        elif text == "📷 Прикрепить фото/видео":
+        elif text in ["📷🎥 Прикрепить фото/видео", "📷 Прикрепить фото/видео"]:
             await update.message.reply_text(
                 "Прикрепите фото или видео к следующему сообщению",
                 reply_markup=self.keyboard_factory.create_media_buttons()
             )
-        elif text == "📷 Прикрепить еще":
+        elif text in ["📷➕ Прикрепить еще", "📷 Прикрепить еще"]:
             await update.message.reply_text(
                 "Прикрепите фото или видео к следующему сообщению",
                 reply_markup=self.keyboard_factory.create_media_continue_buttons()
             )
-        elif text == "⏭️ Продолжить":
+        elif text in ["⏭️▶️ Продолжить", "⏭️ Продолжить"]:
             await self._show_confirmation(update, context, data)
     
     async def _handle_confirmation(self, update: Update, context: ContextTypes.DEFAULT_TYPE, data: dict) -> None:
@@ -133,16 +133,16 @@ class DangerReportHandler(BaseHandler):
         user_id = update.effective_user.id
         text = update.message.text
         
-        if text == "✅ Отправить сообщение":
+        if text in ["✅📤 Отправить сообщение", "✅ Отправить сообщение"]:
             await self._send_incident(update, context, data)
-        elif text == "✏️ Редактировать":
+        elif text in ["✏️📝 Редактировать", "✏️ Редактировать"]:
             # Возвращаемся к началу
             self.state_manager.set_user_state(user_id, {
                 'state': 'danger_description',
                 'data': {}
             })
             await self._start_danger_report(update, context)
-        elif text == "❌ Отменить":
+        elif text in ["❌🚫 Отменить", "❌ Отменить"]:
             self.state_manager.clear_user_state(user_id)
             await update.message.reply_text(
                 "Сообщение об опасности отменено.",
