@@ -133,6 +133,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             elif text == "⏭️ Пропустить":
                 await show_shelters(update, context)
                 return
+        elif state == 'consultant_menu':
+            if text == "📄 Список документов":
+                await handle_documents_list(update, context)
+                return
+            elif text == "❓ Задать вопрос":
+                await handle_ask_question(update, context)
+                return
+        elif state == 'waiting_question':
+            await handle_question_response(update, context)
+            return
+        elif state == 'question_answered':
+            if text == "📖 Подробнее":
+                await handle_detailed_answer(update, context)
+                return
+            elif text == "📄 Открыть PDF":
+                await handle_open_question_pdf(update, context)
+                return
+            elif text == "❓ Задать другой вопрос":
+                await handle_another_question(update, context)
+                return
     
     # Обработка кнопок навигации
     if text == "⬅️ Назад" or text == "⬅️ Главное меню":
@@ -155,6 +175,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Обработка кнопок убежищ
     if text in ["🔍 Показать на карте", "🌐 Открыть в Яндекс.Картах"]:
         await handle_shelter_actions(update, context)
+        return
+    
+    # Обработка кнопок документов
+    if text.startswith("📄 Открыть документ "):
+        await handle_open_document(update, context)
         return
     
     # Основные функции
@@ -626,12 +651,228 @@ async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=get_main_menu()
         )
 
-# Заглушка для "Консультант по безопасности"
+# Обработчик "Консультант по безопасности РПРЗ"
 async def handle_safety_consultant(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    
+    # Инициализируем состояние пользователя
+    user_states[user_id] = {
+        'state': 'consultant_menu',
+        'data': {}
+    }
+    
+    keyboard = [
+        ['📄 Список документов'],
+        ['❓ Задать вопрос'],
+        ['⬅️ Назад']
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    
     await update.message.reply_text(
-        "🧑‍🏫 Функция 'Консультант по безопасности РПРЗ' будет реализована в следующих шагах.\n"
-        "Пока что это заглушка.",
-        reply_markup=get_main_menu()
+        "🧑‍🏫 **Консультант по безопасности РПРЗ**\n\n"
+        "Выберите нужную функцию:",
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
+    )
+
+# Обработчик списка документов
+async def handle_documents_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    
+    if user_id not in user_states or user_states[user_id]['state'] != 'consultant_menu':
+        return
+    
+    # Загружаем данные документов
+    data = load_placeholder_data()
+    documents = data.get('documents', [])
+    
+    if not documents:
+        await update.message.reply_text(
+            "❌ Документы временно недоступны.",
+            reply_markup=ReplyKeyboardMarkup([['⬅️ Назад']], resize_keyboard=True)
+        )
+        return
+    
+    # Показываем список документов
+    text = "📄 **Список документов**\n\n"
+    for i, doc in enumerate(documents, 1):
+        text += f"{i}. **{doc['title']}**\n"
+        text += f"   {doc['description']}\n\n"
+    
+    keyboard = []
+    for i, doc in enumerate(documents, 1):
+        keyboard.append([f"📄 Открыть документ {i}"])
+    keyboard.append(['⬅️ Назад'])
+    
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    
+    await update.message.reply_text(
+        text,
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
+    )
+
+# Обработчик открытия документа
+async def handle_open_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    
+    if not text.startswith("📄 Открыть документ "):
+        return
+    
+    try:
+        doc_num = int(text.split()[-1]) - 1
+        data = load_placeholder_data()
+        documents = data.get('documents', [])
+        
+        if 0 <= doc_num < len(documents):
+            doc = documents[doc_num]
+            
+            # Отправляем PDF файл
+            try:
+                with open(doc['file_path'], 'rb') as pdf_file:
+                    await update.message.reply_document(
+                        document=pdf_file,
+                        filename=f"{doc['title']}.pdf",
+                        caption=f"📄 **{doc['title']}**\n\n{doc['description']}"
+                    )
+            except FileNotFoundError:
+                await update.message.reply_text(
+                    f"❌ Файл документа '{doc['title']}' не найден.",
+                    reply_markup=ReplyKeyboardMarkup([['⬅️ Назад']], resize_keyboard=True)
+                )
+        else:
+            await update.message.reply_text(
+                "❌ Документ не найден.",
+                reply_markup=ReplyKeyboardMarkup([['⬅️ Назад']], resize_keyboard=True)
+            )
+    except (ValueError, IndexError):
+        await update.message.reply_text(
+            "❌ Неверный номер документа.",
+            reply_markup=ReplyKeyboardMarkup([['⬅️ Назад']], resize_keyboard=True)
+        )
+
+# Обработчик "Задать вопрос"
+async def handle_ask_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    
+    if user_id not in user_states or user_states[user_id]['state'] != 'consultant_menu':
+        return
+    
+    user_states[user_id]['state'] = 'waiting_question'
+    
+    keyboard = [['⬅️ Назад']]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    
+    await update.message.reply_text(
+        "❓ **Задать вопрос**\n\n"
+        "Опишите ваш вопрос по безопасности труда. Будьте максимально конкретны:\n"
+        "• В чем именно нужна помощь?\n"
+        "• Какая ситуация возникла?\n"
+        "• Какие документы или процедуры вас интересуют?",
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
+    )
+
+# Обработчик ответа на вопрос
+async def handle_question_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    
+    if user_id not in user_states or user_states[user_id]['state'] != 'waiting_question':
+        return
+    
+    question = update.message.text
+    user_states[user_id]['data']['question'] = question
+    user_states[user_id]['state'] = 'question_answered'
+    
+    # Загружаем шаблоны ответов
+    data = load_placeholder_data()
+    responses = data.get('suggestions_responses', {})
+    
+    # Формируем ответ
+    answer_text = f"❓ **Ваш вопрос:** {question}\n\n"
+    answer_text += f"💡 **Ответ:** {responses.get('default_answer', 'Заглушка-ответ по вашему вопросу.')}\n\n"
+    answer_text += f"📚 **Источник:** {responses.get('default_source', 'Документ №X, стр. Y, п. Z (заглушка).')}"
+    
+    keyboard = [
+        ['📖 Подробнее'],
+        ['📄 Открыть PDF'],
+        ['❓ Задать другой вопрос'],
+        ['⬅️ Назад']
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    
+    await update.message.reply_text(
+        answer_text,
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
+    )
+
+# Обработчик кнопки "Подробнее"
+async def handle_detailed_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    
+    if user_id not in user_states or user_states[user_id]['state'] != 'question_answered':
+        return
+    
+    # Загружаем детальные ответы
+    data = load_placeholder_data()
+    responses = data.get('suggestions_responses', {})
+    detailed = responses.get('detailed_responses', {})
+    
+    # Выбираем подходящий детальный ответ (заглушка)
+    detailed_text = detailed.get('safety', 'Подробная информация по безопасности не найдена.')
+    
+    keyboard = [
+        ['📄 Открыть PDF'],
+        ['❓ Задать другой вопрос'],
+        ['⬅️ Назад']
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    
+    await update.message.reply_text(
+        f"📖 **Подробная информация**\n\n{detailed_text}",
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
+    )
+
+# Обработчик кнопки "Открыть PDF"
+async def handle_open_question_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    
+    if user_id not in user_states or user_states[user_id]['state'] != 'question_answered':
+        return
+    
+    # Отправляем заглушку PDF
+    try:
+        with open('assets/pdfs/dummy.pdf', 'rb') as pdf_file:
+            await update.message.reply_document(
+                document=pdf_file,
+                filename="Документ_по_безопасности.pdf",
+                caption="📄 **Документ по безопасности**\n\nСправочный материал по вашему вопросу."
+            )
+    except FileNotFoundError:
+        await update.message.reply_text(
+            "❌ Документ временно недоступен.",
+            reply_markup=ReplyKeyboardMarkup([['⬅️ Назад']], resize_keyboard=True)
+        )
+
+# Обработчик "Задать другой вопрос"
+async def handle_another_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    
+    if user_id not in user_states:
+        return
+    
+    user_states[user_id]['state'] = 'waiting_question'
+    
+    keyboard = [['⬅️ Назад']]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    
+    await update.message.reply_text(
+        "❓ **Задать другой вопрос**\n\n"
+        "Опишите ваш новый вопрос по безопасности труда:",
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
     )
 
 def main():
