@@ -2,10 +2,14 @@
 Рефакторенный главный файл бота с соблюдением принципов SOLID
 """
 import os
+import sys
 import logging
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+
+# Добавляем путь к модулям
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Импорты интерфейсов и утилит
 from bot.interfaces import ILogger, IStateManager, IFileManager, IKeyboardFactory
