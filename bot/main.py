@@ -119,6 +119,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     reply_markup=get_main_menu()
                 )
                 return
+        elif state == 'shelter_location':
+            if text == "📍 Отправить геолокацию":
+                await update.message.reply_text(
+                    "Отправьте вашу геолокацию кнопкой ниже",
+                    reply_markup=ReplyKeyboardMarkup([
+                        [KeyboardButton("📍 Отправить геолокацию", request_location=True)],
+                        ['⏭️ Пропустить'],
+                        ['⬅️ Назад']
+                    ], resize_keyboard=True)
+                )
+                return
+            elif text == "⏭️ Пропустить":
+                await show_shelters(update, context)
+                return
     
     # Обработка кнопок навигации
     if text == "⬅️ Назад" or text == "⬅️ Главное меню":
@@ -136,6 +150,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     elif text == "📞 Позвонить в охрану труда":
         await handle_safety_call(update, context)
+        return
+    
+    # Обработка кнопок убежищ
+    if text in ["🔍 Показать на карте", "🌐 Открыть в Яндекс.Картах"]:
+        await handle_shelter_actions(update, context)
         return
     
     # Основные функции
@@ -487,13 +506,125 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=get_main_menu()
         )
 
-# Заглушка для "Ближайшее укрытие"
+# Обработчик "Ближайшее укрытие"
 async def handle_shelter_finder(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    
+    # Инициализируем состояние пользователя
+    user_states[user_id] = {
+        'state': 'shelter_location',
+        'data': {}
+    }
+    
+    keyboard = [
+        ['📍 Отправить геолокацию'],
+        ['⏭️ Пропустить'],
+        ['⬅️ Назад']
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    
     await update.message.reply_text(
-        "🏠 Функция 'Ближайшее укрытие' будет реализована в следующих шагах.\n"
-        "Пока что это заглушка.",
-        reply_markup=get_main_menu()
+        "🏠 **Ближайшее укрытие**\n\n"
+        "Для поиска ближайших убежищ отправьте вашу геолокацию или пропустите этот шаг.",
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
     )
+
+# Обработчик геолокации для убежищ
+async def handle_shelter_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    
+    if user_id not in user_states or user_states[user_id]['state'] != 'shelter_location':
+        return
+    
+    # Кэшируем координаты пользователя
+    if update.message.location:
+        user_states[user_id]['data']['user_lat'] = update.message.location.latitude
+        user_states[user_id]['data']['user_lon'] = update.message.location.longitude
+        logger.info(f"Геолокация пользователя {user_id}: {update.message.location.latitude}, {update.message.location.longitude}")
+    
+    # Показываем убежища
+    await show_shelters(update, context)
+
+# Показать список убежищ
+async def show_shelters(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    
+    # Загружаем данные убежищ
+    data = load_placeholder_data()
+    shelters = data.get('shelters', [])
+    
+    if not shelters:
+        await update.message.reply_text(
+            "❌ Информация об убежищах временно недоступна.",
+            reply_markup=ReplyKeyboardMarkup([['⬅️ Главное меню']], resize_keyboard=True)
+        )
+        return
+    
+    # Показываем первые 3 убежища
+    for i, shelter in enumerate(shelters[:3], 1):
+        text = f"🏠 **{shelter['name']}**\n\n"
+        text += f"{shelter['description']}\n\n"
+        text += f"📍 Координаты: {shelter['lat']}, {shelter['lon']}"
+        
+        keyboard = [
+            ['🔍 Показать на карте', '🌐 Открыть в Яндекс.Картах'],
+            ['⬅️ Главное меню']
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+        
+        # Отправляем изображение убежища (заглушка)
+        try:
+            with open(shelter['photo_path'], 'rb') as photo:
+                await update.message.reply_photo(
+                    photo=photo,
+                    caption=text,
+                    reply_markup=reply_markup,
+                    parse_mode='Markdown'
+                )
+        except FileNotFoundError:
+            # Если файл не найден, отправляем только текст
+            await update.message.reply_text(
+                text,
+                reply_markup=reply_markup,
+                parse_mode='Markdown'
+            )
+    
+    # Очищаем состояние
+    if user_id in user_states:
+        del user_states[user_id]
+
+# Обработчик кнопок убежищ
+async def handle_shelter_actions(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    
+    if text == "🔍 Показать на карте":
+        await update.message.reply_text(
+            "📍 **Местоположение убежища**\n\n"
+            "Координаты: 55.7558, 37.6176 (заглушка)\n"
+            "В реальной версии здесь будет отправлена геолокация убежища.",
+            reply_markup=ReplyKeyboardMarkup([['⬅️ Главное меню']], resize_keyboard=True)
+        )
+    elif text == "🌐 Открыть в Яндекс.Картах":
+        await update.message.reply_text(
+            "🌐 **Ссылка на Яндекс.Карты**\n\n"
+            "https://yandex.ru/maps/?pt=37.6176,55.7558&z=16&l=map\n"
+            "В реальной версии здесь будет ссылка на конкретное убежище.",
+            reply_markup=ReplyKeyboardMarkup([['⬅️ Главное меню']], resize_keyboard=True)
+        )
+
+# Обработчик геолокации
+async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    
+    # Проверяем, находится ли пользователь в состоянии ожидания геолокации для убежищ
+    if user_id in user_states and user_states[user_id]['state'] == 'shelter_location':
+        await handle_shelter_location(update, context)
+    else:
+        await update.message.reply_text(
+            "Пожалуйста, выберите функцию из главного меню.",
+            reply_markup=get_main_menu()
+        )
 
 # Заглушка для "Консультант по безопасности"
 async def handle_safety_consultant(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -517,6 +648,7 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, handle_media))
+    application.add_handler(MessageHandler(filters.LOCATION, handle_location))
     
     # Запускаем бота
     logger.info("Запуск бота...")
