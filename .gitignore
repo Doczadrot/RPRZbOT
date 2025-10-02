@@ -1,6 +1,29 @@
-# Чувствительные данные
+# Конфиденциальные данные
 .env
 *.env
+.env.backup
+.env.local
+.env.production
+.env.staging
+.env.development
+
+# Конфигурационные файлы с секретами
+config.json
+secrets.json
+credentials.json
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Базы данных
+*.db
+*.sqlite
+*.sqlite3
+
+# Локальные настройки
+local_settings.py
+settings_local.py
 
 # Логи
 logs/
@@ -28,7 +51,7 @@ wheels/
 .installed.cfg
 *.egg
 
-# Виртуальные окружения
+# Virtual environments
 venv/
 env/
 ENV/
@@ -43,11 +66,6 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# Базы данных
-*.db
-*.sqlite
-*.sqlite3
-
-# Временные файлы
+# Temporary files
 *.tmp
 *.temp
