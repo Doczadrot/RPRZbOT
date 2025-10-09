@@ -92,9 +92,7 @@ def log_admin_error(error_type: str, error: Exception, context: dict = None):
 
         # Логируем в основной лог ошибок
         logger.error(
-            f"ADMIN_ERROR | {error_type} | {
-                type(error).__name__}: {
-                str(error)}"
+            f"ADMIN_ERROR | {error_type} | {type(error).__name__}: {str(error)}"
         )
 
         # Логируем в системный лог с дополнительной информацией
