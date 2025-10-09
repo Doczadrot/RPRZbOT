@@ -1234,7 +1234,7 @@ if __name__ == "__main__":
     logger.info("Запуск MVP бота безопасности РПРЗ")
 
     # Проверяем наличие токена
-    if not BOT_TOKEN or BOT_TOKEN == "your_telegram_bot_token_here":
+    if not BOT_TOKEN or len(BOT_TOKEN) < 10:
         log_admin_error(
             "CONFIG_ERROR",
             Exception("BOT_TOKEN не найден"),
@@ -1242,8 +1242,8 @@ if __name__ == "__main__":
         )
         logger.error("❌ BOT_TOKEN не настроен! Создайте файл .env с токеном бота")
         logger.info("📝 Пример содержимого .env:")
-        logger.info("BOT_TOKEN=PLACEHOLDER_BOT_TOKEN")
-        logger.info("ADMIN_CHAT_ID=PLACEHOLDER_CHAT_ID")
+        logger.info("BOT_TOKEN=ваш_токен_от_botfather")
+        logger.info("ADMIN_CHAT_ID=ваш_chat_id")
         sys.exit(1)
 
     # Инициализация бота
