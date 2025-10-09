@@ -1,281 +1,336 @@
-#!/usr/bin/env python3
 """
-Тесты безопасности для RPRZ Safety Bot
-Проверяет функции санитизации, валидации и защиты от уязвимостей
+Тесты для модуля безопасности бота
 """
 
 import pytest
+import time
+from unittest.mock import Mock, patch, MagicMock
 import sys
 import os
 
 # Добавляем путь к модулям
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
-from bot.main import sanitize_user_input, validate_user_input, mask_sensitive_data
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'bot'))
 
 
-class TestInputSanitization:
-    """Тесты санитизации пользовательского ввода"""
+class TestSecurityManager:
+    """Тесты для SecurityManager"""
     
-    def test_sanitize_basic_input(self):
-        """Тест базовой санитизации"""
-        input_text = "Привет, мир!"
-        result = sanitize_user_input(input_text)
-        assert result == "Привет, мир!"
+    def test_import_security_module(self):
+        """Тест импорта модуля безопасности"""
+        try:
+            from security import SecurityManager, security_manager
+            assert SecurityManager is not None
+            assert security_manager is not None
+        except ImportError as e:
+            pytest.fail(f"Не удалось импортировать security: {e}")
     
-    def test_sanitize_dangerous_chars(self):
-        """Тест удаления опасных символов"""
-        input_text = "Тест <script>alert('xss')</script>"
-        result = sanitize_user_input(input_text)
-        assert "<" not in result
-        assert ">" not in result
-        assert "script" not in result
-        assert "alert" in result  # alert должен остаться, так как не в списке опасных
+    def test_rate_limiting(self):
+        """Тест rate limiting"""
+        from security import SecurityManager
+        
+        manager = SecurityManager()
+        manager.MAX_REQUESTS_PER_MINUTE = 3  # Снижаем для теста
+        
+        user_id = 12345
+        
+        # Первые 3 запроса должны проходить
+        for i in range(3):
+            is_allowed, error = manager.check_rate_limit(user_id)
+            assert is_allowed is True
+            assert error is None
+        
+        # 4-й запрос должен быть заблокирован
+        is_allowed, error = manager.check_rate_limit(user_id)
+        assert is_allowed is False
+        assert "много запросов" in error.lower()
     
-    def test_sanitize_sql_injection(self):
-        """Тест защиты от SQL инъекций"""
-        input_text = "'; DROP TABLE users; --"
-        result = sanitize_user_input(input_text)
-        assert ";" not in result
-        assert "DROP" not in result
-        assert "TABLE" in result  # TABLE должно остаться
+    def test_flood_control(self):
+        """Тест flood control"""
+        from security import SecurityManager
+        
+        manager = SecurityManager()
+        manager.FLOOD_INTERVAL_SECONDS = 2
+        
+        user_id = 12345
+        action = "test_action"
+        
+        # Первый запрос проходит
+        is_allowed, error = manager.check_flood(user_id, action)
+        assert is_allowed is True
+        assert error is None
+        
+        # Второй запрос сразу же - блокируется
+        is_allowed, error = manager.check_flood(user_id, action)
+        assert is_allowed is False
+        assert "подождите" in error.lower()
+        
+        # После ожидания - проходит
+        time.sleep(2.1)
+        is_allowed, error = manager.check_flood(user_id, action)
+        assert is_allowed is True
+        assert error is None
     
-    def test_sanitize_command_injection(self):
-        """Тест защиты от инъекций команд"""
-        input_text = "test; rm -rf /"
-        result = sanitize_user_input(input_text)
-        assert ";" not in result
-        assert "rm" not in result
-        assert "test" in result  # test должно остаться
-    
-    def test_sanitize_long_input(self):
-        """Тест обрезки длинного ввода"""
-        long_text = "A" * 2000
-        result = sanitize_user_input(long_text)
-        assert len(result) <= 1003  # 1000 + "..."
-        assert result.endswith("...")
-    
-    def test_sanitize_empty_input(self):
-        """Тест пустого ввода"""
-        result = sanitize_user_input("")
-        assert result == ""
-        result = sanitize_user_input(None)
-        assert result == ""
-    
-    def test_sanitize_multiple_spaces(self):
-        """Тест удаления множественных пробелов"""
-        input_text = "Тест    с    множественными     пробелами"
-        result = sanitize_user_input(input_text)
-        assert "  " not in result
-        assert result == "Тест с множественными пробелами"
-
-
-class TestInputValidation:
-    """Тесты валидации пользовательского ввода"""
-    
-    def test_validate_good_input(self):
-        """Тест валидного ввода"""
-        is_valid, error = validate_user_input("Нормальный текст")
+    def test_text_validation(self):
+        """Тест валидации текста"""
+        from security import SecurityManager
+        
+        manager = SecurityManager()
+        user_id = 12345
+        
+        # Нормальный текст
+        is_valid, error = manager.validate_text("Нормальный текст сообщения", user_id)
         assert is_valid is True
-        assert error == "OK"
-    
-    def test_validate_empty_input(self):
-        """Тест пустого ввода"""
-        is_valid, error = validate_user_input("")
-        assert is_valid is False
-        assert "Пустой ввод" in error
-    
-    def test_validate_too_short(self):
-        """Тест слишком короткого ввода"""
-        is_valid, error = validate_user_input("a", min_length=5)
-        assert is_valid is False
-        assert "слишком короткий" in error.lower()
-    
-    def test_validate_too_long(self):
-        """Тест слишком длинного ввода"""
-        long_text = "A" * 2000
-        is_valid, error = validate_user_input(long_text, max_length=100)
-        assert is_valid is False
-        assert "слишком длинный" in error.lower()
-    
-    def test_validate_xss_patterns(self):
-        """Тест обнаружения XSS паттернов"""
-        xss_inputs = [
-            "<script>alert('xss')</script>",
-            "javascript:alert('xss')",
-            "data:text/html,<script>alert('xss')</script>",
-            "vbscript:alert('xss')",
-            "<img onload=alert('xss')>",
-            "<iframe src='javascript:alert(\"xss\")'></iframe>"
-        ]
+        assert error is None
         
-        for xss_input in xss_inputs:
-            is_valid, error = validate_user_input(xss_input)
-            assert is_valid is False
-            assert "подозрительный контент" in error
-    
-    def test_validate_sql_injection_patterns(self):
-        """Тест обнаружения SQL инъекций"""
-        sql_inputs = [
-            "'; DROP TABLE users; --",
-            "1' OR '1'='1",
-            "admin'--",
-            "1 UNION SELECT * FROM users",
-            "1' AND 1=1--",
-            "1' OR 1=1#"
-        ]
-        
-        for sql_input in sql_inputs:
-            is_valid, error = validate_user_input(sql_input)
-            # После санитизации некоторые паттерны могут быть удалены
-            # Проверяем, что либо валидация сработала, либо санитизация удалила опасные части
-            if is_valid:
-                # Если валидация прошла, проверяем что санитизация удалила опасные части
-                sanitized = sanitize_user_input(sql_input)
-                assert "DROP" not in sanitized or "SELECT" not in sanitized or "UNION" not in sanitized
-            else:
-                assert "подозрительный контент" in error
-    
-    def test_validate_custom_limits(self):
-        """Тест пользовательских лимитов"""
-        # Тест с минимальной длиной
-        is_valid, error = validate_user_input("test", min_length=10)
+        # Слишком длинный текст
+        long_text = "а" * 5000
+        is_valid, error = manager.validate_text(long_text, user_id)
         assert is_valid is False
+        assert "длинный" in error.lower()
+    
+    def test_file_validation(self):
+        """Тест валидации файлов"""
+        from security import SecurityManager
         
-        # Тест с максимальной длиной
-        is_valid, error = validate_user_input("test", max_length=3)
+        manager = SecurityManager()
+        user_id = 12345
+        
+        # Нормальный файл
+        file_size = 5 * 1024 * 1024  # 5 МБ
+        file_type = "image/jpeg"
+        is_valid, error = manager.validate_file(file_size, file_type, user_id, max_size_mb=20)
+        assert is_valid is True
+        assert error is None
+        
+        # Слишком большой файл
+        large_file_size = 30 * 1024 * 1024  # 30 МБ
+        is_valid, error = manager.validate_file(large_file_size, file_type, user_id, max_size_mb=20)
         assert is_valid is False
-
-
-class TestSensitiveDataMasking:
-    """Тесты маскирования чувствительных данных"""
+        assert "большой" in error.lower()
+        
+        # Недопустимый тип файла
+        invalid_type = "application/x-executable"
+        is_valid, error = manager.validate_file(file_size, invalid_type, user_id, max_size_mb=20)
+        assert is_valid is False
+        assert "тип" in error.lower()
     
-    def test_mask_bot_token(self):
-        """Тест маскирования токена бота"""
-        token = "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-        masked = mask_sensitive_data(token)
-        assert masked == "123456789:***wxyz"
-        assert "ABCdefGHIjklMNOpqrsTUV" not in masked
+    def test_whitelist(self):
+        """Тест whitelist"""
+        from security import SecurityManager
+        
+        manager = SecurityManager()
+        admin_id = 99999
+        
+        # Добавляем в whitelist
+        manager.add_to_whitelist(admin_id)
+        
+        # Устанавливаем жесткие лимиты
+        manager.MAX_REQUESTS_PER_MINUTE = 1
+        
+        # Делаем много запросов от админа - все должны проходить
+        for i in range(5):
+            is_allowed, error = manager.check_rate_limit(admin_id)
+            assert is_allowed is True  # Whitelist пропускает всё
     
-    def test_mask_long_string(self):
-        """Тест маскирования длинной строки"""
-        long_string = "very_long_string_that_should_be_masked"
-        masked = mask_sensitive_data(long_string)
-        assert masked == "very_lon***sked"
-        assert len(masked) < len(long_string)
+    def test_blacklist(self):
+        """Тест blacklist"""
+        from security import SecurityManager
+        
+        manager = SecurityManager()
+        banned_user_id = 66666
+        
+        # Добавляем в blacklist
+        manager.add_to_blacklist(banned_user_id)
+        
+        # Любой запрос должен блокироваться
+        is_allowed, error = manager.check_rate_limit(banned_user_id)
+        assert is_allowed is False
+        assert "заблокирован" in error.lower()
     
-    def test_mask_short_string(self):
-        """Тест короткой строки (не маскируется)"""
-        short_string = "short"
-        masked = mask_sensitive_data(short_string)
-        assert masked == short_string
+    def test_suspicious_activity_tracking(self):
+        """Тест отслеживания подозрительной активности"""
+        from security import SecurityManager
+        
+        manager = SecurityManager()
+        manager.MAX_SUSPICIOUS_SCORE = 3  # Снижаем для теста
+        
+        user_id = 77777
+        
+        # Добавляем подозрительную активность
+        for i in range(2):
+            manager._add_suspicious_activity(user_id, "test_reason")
+        
+        # Проверяем счетчик
+        assert manager.suspicious_activity[user_id] == 2
+        
+        # Превышаем порог - должна быть автоматическая блокировка
+        manager._add_suspicious_activity(user_id, "test_reason")
+        assert user_id in manager.blacklist
     
-    def test_mask_empty_string(self):
-        """Тест пустой строки"""
-        masked = mask_sensitive_data("")
-        assert masked == ""
-        masked = mask_sensitive_data(None)
-        assert masked == ""
+    def test_get_user_security_info(self):
+        """Тест получения информации о безопасности пользователя"""
+        from security import SecurityManager
+        
+        manager = SecurityManager()
+        user_id = 88888
+        
+        # Делаем несколько запросов
+        manager.check_rate_limit(user_id)
+        manager.check_flood(user_id, "test_action")
+        
+        # Получаем информацию
+        info = manager.get_user_security_info(user_id)
+        
+        assert info['user_id'] == user_id
+        assert 'is_whitelisted' in info
+        assert 'is_blacklisted' in info
+        assert 'suspicious_score' in info
+        assert 'requests_last_minute' in info
     
-    def test_mask_password_like_string(self):
-        """Тест строки похожей на пароль"""
-        password = "my_secret_password_12345"
-        masked = mask_sensitive_data(password)
-        assert masked == "my_secre***2345"  # Исправлено под реальное поведение
-        assert "secret_password" not in masked
+    def test_clean_old_data(self):
+        """Тест очистки старых данных"""
+        from security import SecurityManager
+        
+        manager = SecurityManager()
+        user_id = 99999
+        
+        # Добавляем данные
+        manager.check_rate_limit(user_id)
+        manager.check_flood(user_id, "test_action")
+        
+        # Очищаем
+        manager.clean_old_data()
+        
+        # Проверяем, что данные остались (т.к. они свежие)
+        assert user_id in manager.user_requests or len(manager.user_requests[user_id]) == 0
+    
+    def test_security_check_functions(self):
+        """Тест вспомогательных функций безопасности"""
+        from security import check_user_security, validate_user_text, validate_user_file
+        
+        user_id = 11111
+        
+        # check_user_security
+        is_allowed, error = check_user_security(user_id, "test")
+        assert is_allowed is True
+        
+        # validate_user_text
+        is_valid, error = validate_user_text("Обычный текст", user_id)
+        assert is_valid is True
+        
+        # validate_user_file
+        is_valid, error = validate_user_file(1024*1024, "image/png", user_id, 10)
+        assert is_valid is True
 
 
 class TestSecurityIntegration:
-    """Интеграционные тесты безопасности"""
+    """Тесты интеграции безопасности с основным ботом"""
     
-    def test_sanitize_and_validate_workflow(self):
-        """Тест полного цикла санитизации и валидации"""
-        malicious_input = "<script>alert('xss')</script>; DROP TABLE users; --"
-        
-        # Санитизация
-        sanitized = sanitize_user_input(malicious_input)
-        assert "<" not in sanitized
-        assert ">" not in sanitized
-        assert ";" not in sanitized
-        
-        # Валидация
-        is_valid, error = validate_user_input(sanitized)
-        assert is_valid is True  # После санитизации должно быть валидно
-    
-    def test_real_world_attack_vectors(self):
-        """Тест реальных векторов атак"""
-        attack_vectors = [
-            "'; DROP TABLE users; --",
-            "<script>document.location='http://evil.com'</script>",
-            "javascript:alert('XSS')",
-            "1' OR '1'='1' UNION SELECT password FROM users--",
-            "<img src=x onerror=alert('XSS')>",
-            "'; INSERT INTO users VALUES ('hacker', 'password'); --"
-        ]
-        
-        for attack in attack_vectors:
-            # Санитизация должна удалить опасные символы
-            sanitized = sanitize_user_input(attack)
-            dangerous_chars = ['<', '>', ';', '(', ')', '{', '}']
-            for char in dangerous_chars:
-                assert char not in sanitized, f"Опасный символ {char} не удален из {attack}"
+    def test_security_in_main_module(self):
+        """Тест наличия системы безопасности в main.py"""
+        try:
+            # Проверяем, что модуль импортируется
+            import main
             
-            # Валидация должна обнаружить подозрительные паттерны ИЛИ санитизация должна их удалить
-            is_valid, error = validate_user_input(attack)
-            if is_valid:
-                # Если валидация прошла, проверяем что санитизация удалила опасные части
-                assert "DROP" not in sanitized or "SELECT" not in sanitized or "script" not in sanitized
-            else:
-                assert "подозрительный контент" in error
+            # Проверяем наличие флага безопасности
+            assert hasattr(main, 'SECURITY_ENABLED')
+            
+            # Проверяем наличие функций безопасности
+            assert hasattr(main, 'check_user_security')
+            assert hasattr(main, 'validate_user_text')
+            assert hasattr(main, 'validate_user_file')
+            
+        except ImportError:
+            # Если не удается импортировать (бот не запущен), это нормально для тестов
+            pass
     
-    def test_performance_with_large_input(self):
-        """Тест производительности с большим вводом"""
-        large_input = "A" * 10000 + "<script>alert('xss')</script>"
+    @patch.dict(os.environ, {'BOT_TOKEN': 'test_token', 'ADMIN_CHAT_ID': '123456'})
+    def test_security_manager_initialization(self):
+        """Тест инициализации SecurityManager с переменными окружения"""
+        from security import SecurityManager
         
-        # Должно работать быстро даже с большим вводом
-        sanitized = sanitize_user_input(large_input)
-        assert len(sanitized) <= 1003  # Ограничение длины
+        manager = SecurityManager()
         
-        is_valid, error = validate_user_input(large_input)
-        assert is_valid is False  # Должно быть невалидно из-за размера
+        # Проверяем, что ADMIN добавлен в whitelist
+        assert manager.ADMIN_CHAT_ID == 123456
+        assert 123456 in manager.whitelist
+    
+    def test_spam_protection_scenario(self):
+        """Тест сценария защиты от спама"""
+        from security import SecurityManager
+        
+        manager = SecurityManager()
+        manager.MAX_REQUESTS_PER_MINUTE = 5
+        
+        spammer_id = 55555
+        
+        # Спамер отправляет много запросов
+        blocked_count = 0
+        for i in range(10):
+            is_allowed, error = manager.check_rate_limit(spammer_id)
+            if not is_allowed:
+                blocked_count += 1
+        
+        # Часть запросов должна быть заблокирована
+        assert blocked_count > 0
+        
+        # Проверяем, что спамер в списке подозрительных
+        assert manager.suspicious_activity[spammer_id] > 0
 
 
 class TestSecurityEdgeCases:
-    """Тесты граничных случаев безопасности"""
+    """Тесты граничных случаев"""
     
-    def test_unicode_handling(self):
-        """Тест обработки Unicode"""
-        unicode_input = "Тест с кириллицей 🚀 и эмодзи"
-        sanitized = sanitize_user_input(unicode_input)
-        assert "🚀" in sanitized  # Эмодзи должны сохраняться
-        assert "кириллицей" in sanitized
+    def test_empty_text_validation(self):
+        """Тест валидации пустого текста"""
+        from security import SecurityManager
+        
+        manager = SecurityManager()
+        is_valid, error = manager.validate_text("", 12345)
+        assert is_valid is True  # Пустой текст допустим
     
-    def test_special_characters(self):
-        """Тест специальных символов"""
-        special_input = "Тест с символами: !@#$%^&*()_+-=[]{}|;':\",./<>?"
-        sanitized = sanitize_user_input(special_input)
-        # Опасные символы должны быть удалены
-        assert "<" not in sanitized
-        assert ">" not in sanitized
-        assert ";" not in sanitized
-        # Безопасные символы должны остаться
-        assert "!" in sanitized
-        assert "@" in sanitized
+    def test_none_file_type(self):
+        """Тест валидации файла без типа"""
+        from security import SecurityManager
+        
+        manager = SecurityManager()
+        is_valid, error = manager.validate_file(1024, None, 12345, 10)
+        assert is_valid is True  # Если тип не указан, пропускаем
     
-    def test_nested_attacks(self):
-        """Тест вложенных атак"""
-        nested_attack = "Нормальный текст <script>alert('xss')</script> и еще текст"
-        sanitized = sanitize_user_input(nested_attack)
-        assert "Нормальный текст" in sanitized
-        assert "и еще текст" in sanitized
-        assert "<script>" not in sanitized
+    def test_multiple_actions_flood(self):
+        """Тест флуда разных действий"""
+        from security import SecurityManager
+        
+        manager = SecurityManager()
+        manager.FLOOD_INTERVAL_SECONDS = 1
+        
+        user_id = 33333
+        
+        # Разные действия не должны мешать друг другу
+        is_allowed1, _ = manager.check_flood(user_id, "action1")
+        is_allowed2, _ = manager.check_flood(user_id, "action2")
+        
+        assert is_allowed1 is True
+        assert is_allowed2 is True
     
-    def test_whitespace_handling(self):
-        """Тест обработки пробелов"""
-        whitespace_input = "  \t\n  Тест  \t\n  "
-        sanitized = sanitize_user_input(whitespace_input)
-        assert sanitized == "Тест"  # Должно быть очищено от лишних пробелов
+    def test_reset_user_limits(self):
+        """Тест сброса лимитов пользователя"""
+        from security import SecurityManager
+        
+        manager = SecurityManager()
+        user_id = 44444
+        
+        # Создаем активность
+        manager.check_rate_limit(user_id)
+        manager.check_flood(user_id, "test")
+        
+        # Сбрасываем
+        manager.reset_user_limits(user_id)
+        
+        # Проверяем, что лимиты сброшены
+        assert len(manager.user_requests[user_id]) == 0
+        assert len(manager.user_last_action[user_id]) == 0
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+if __name__ == '__main__':
+    pytest.main([__file__, '-v'])

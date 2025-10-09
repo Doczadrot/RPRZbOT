@@ -1,34 +1,3 @@
-# Конфиденциальные данные
-.env
-*.env
-.env.backup
-.env.local
-.env.production
-.env.staging
-.env.development
-
-# Конфигурационные файлы с секретами
-config.json
-secrets.json
-credentials.json
-*.key
-*.pem
-*.p12
-*.pfx
-
-# Базы данных
-*.db
-*.sqlite
-*.sqlite3
-
-# Локальные настройки
-local_settings.py
-settings_local.py
-
-# Логи
-logs/
-*.log
-
 # Python
 __pycache__/
 *.py[cod]
@@ -50,22 +19,108 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Virtual environments
+# Virtual Environment
 venv/
 env/
 ENV/
+.venv
+
+# Environment variables (КРИТИЧНО!)
+.env
+.env.*
+.env.local
+.env.production
+.env.development
+.env.test
+*.env
+.flaskenv
+
+# Секретные ключи и токены (КРИТИЧНО!)
+*.key
+*.pem
+*.p12
+*.pfx
+*.cer
+*.crt
+*.der
+secret.txt
+secrets.txt
+secrets.json
+secrets.yaml
+secrets.yml
+*.secret
+*.secrets
+credentials.json
+service-account.json
+client_secret*.json
+*.token
+token.txt
+.token
+
+# Конфиденциальные конфиги
+config.local.*
+config.secret.*
+config.prod.*
+config.production.*
+local_settings.py
+production_settings.py
+database.yml
+database.json
+
+# SSH и сертификаты
+id_rsa
+id_rsa.pub
+id_dsa
+id_dsa.pub
+id_ecdsa
+id_ecdsa.pub
+id_ed25519
+id_ed25519.pub
+*.ppk
+authorized_keys
+known_hosts
+
+# Пароли и аутентификация
+password.txt
+passwords.txt
+auth.json
+.htpasswd
+.pgpass
+
+# Базы данных (локальные)
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+dump.sql
+backup.sql
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+
+# Logs
+*.log
+logs/*.log
+logs/*.csv
+logs/*.json
+
+# Process files
+bot.lock
+bot.pid
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
 
 # OS
 .DS_Store
 Thumbs.db
-
-# Temporary files
-*.tmp
-*.temp

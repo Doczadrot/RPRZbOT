@@ -158,36 +158,45 @@ class SMTPNotificationChannel:
                         if not file_id:
                             continue
                         
-                        # Создаем временный файл
-                        with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{i}") as temp_file:
+                        # Определяем расширение файла в зависимости от типа
+                        if file_type == 'photo':
+                            file_ext = '.jpg'
+                            mime_type = 'image/jpeg'
+                        elif file_type == 'video':
+                            file_ext = '.mp4'
+                            mime_type = 'video/mp4'
+                        elif file_type == 'document':
+                            file_ext = '.pdf'  # По умолчанию для документов
+                            mime_type = 'application/pdf'
+                        else:
+                            file_ext = '.bin'
+                            mime_type = 'application/octet-stream'
+                        
+                        # Создаем временный файл с правильным расширением
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{i}{file_ext}") as temp_file:
                             temp_path = temp_file.name
                         
                         # Скачиваем файл из Telegram
                         if download_telegram_file(file_id, temp_path):
                             downloaded_files.append((temp_path, file_type, media_info))
                             
-                            # Определяем MIME тип
-                            mime_type, _ = mimetypes.guess_type(temp_path)
-                            if not mime_type:
-                                mime_type = 'application/octet-stream'
-                            
                             # Читаем файл и прикрепляем к письму
                             with open(temp_path, 'rb') as f:
                                 file_data = f.read()
                             
                             # Создаем MIME объект в зависимости от типа
-                            if file_type.startswith('photo'):
+                            if file_type == 'photo':
                                 attachment = MIMEImage(file_data)
-                            elif file_type.startswith('video'):
-                                attachment = MIMEBase('video', mime_type.split('/')[-1])
+                            elif file_type == 'video':
+                                attachment = MIMEBase('video', 'mp4')
                                 attachment.set_payload(file_data)
                             else:
                                 attachment = MIMEApplication(file_data)
                             
-                            # Устанавливаем заголовки
+                            # Устанавливаем заголовки с правильным расширением
                             attachment.add_header(
                                 'Content-Disposition',
-                                f'attachment; filename="incident_media_{i+1}.{mime_type.split("/")[-1]}"'
+                                f'attachment; filename="incident_media_{i+1}{file_ext}"'
                             )
                             attachment.add_header('Content-Type', mime_type)
                             

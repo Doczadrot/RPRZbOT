@@ -1,0 +1,601 @@
+﻿[
+  {
+    "timestamp": "2025-09-30T17:21:28.099466",
+    "user_id": 898852116,
+    "incident": {
+      "description": "152412341325",
+      "location": null,
+      "location_text": "уцкйуцкйуцк",
+      "media_count": 1,
+      "user_id": 898852116,
+      "username": "RightNigth"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:19:10.807366",
+    "user_id": 12345,
+    "incident": {
+      "test": "data"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:19:11.046971",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:41:52.330318",
+    "user_id": 12345,
+    "incident": {
+      "test": "data"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:41:52.581602",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:41:53.833715",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:46:45.385460",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:46:46.893466",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:49:16.086674",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:49:17.129156",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:50:58.156126",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:50:59.047104",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:53:39.421986",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:53:40.419257",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:55:02.422795",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:55:02.840475",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:56:17.084490",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T17:56:17.586664",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T20:04:59.562276",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T20:05:00.676785",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T20:08:16.479413",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T20:08:17.265125",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T20:10:23.895942",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T20:10:24.182826",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T20:10:55.740916",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T20:10:55.891290",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T20:13:11.925637",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T20:13:12.211558",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T20:16:55.520303",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T20:16:55.851195",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T22:19:23.588456",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T22:19:23.748092",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T22:21:51.355638",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T22:21:51.890825",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T22:23:58.462863",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T22:23:58.709860",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T22:56:49.785480",
+    "user_id": 898852116,
+    "incident": {
+      "description": "Лалаталалататаоа",
+      "location": {
+        "latitude": 47.178075,
+        "longitude": 39.685928
+      },
+      "location_text": null,
+      "media_count": 0,
+      "user_id": 898852116,
+      "username": "RightNigth"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T23:13:31.718399",
+    "user_id": 898852116,
+    "incident": {
+      "description": "213223141234132423",
+      "location": null,
+      "location_text": "324231412342134",
+      "media_count": 0,
+      "user_id": 898852116,
+      "username": "RightNigth"
+    }
+  },
+  {
+    "timestamp": "2025-10-01T23:13:32.499242",
+    "user_id": 898852116,
+    "incident": {
+      "description": "213223141234132423",
+      "location": null,
+      "location_text": "324231412342134",
+      "media_count": 0,
+      "user_id": 898852116,
+      "username": "RightNigth"
+    }
+  },
+  {
+    "timestamp": "2025-10-02T19:38:27.958733",
+    "user_id": 898852116,
+    "incident": {
+      "description": "Аовоиаоаиа",
+      "location": null,
+      "location_text": "Jasvhadbevdvd",
+      "media_count": 1,
+      "user_id": 898852116,
+      "username": "RightNigth"
+    }
+  },
+  {
+    "timestamp": "2025-10-02T19:49:34.697393",
+    "user_id": 898852116,
+    "incident": {
+      "description": "And and be dbs",
+      "location": {
+        "latitude": 47.184355,
+        "longitude": 39.692962
+      },
+      "location_text": null,
+      "media_count": 1,
+      "media": [
+        {
+          "type": "photo",
+          "file_id": "AgACAgIAAxkBAAINb2jeqoKAq3M0L_7jyRF-f15TGMwpAAJ2_zEbaPb4Sstkun3Y9c1VAQADAgADeQADNgQ",
+          "file_size": 142706
+        }
+      ],
+      "user_id": 898852116,
+      "username": "RightNigth"
+    }
+  },
+  {
+    "timestamp": "2025-10-02T19:56:24.075668",
+    "user_id": 898852116,
+    "incident": {
+      "description": "Таьытатутаттаиа",
+      "location": null,
+      "location_text": "Не указано",
+      "media_count": 0,
+      "media": [],
+      "user_id": 898852116,
+      "username": "RightNigth"
+    }
+  },
+  {
+    "timestamp": "2025-10-08T19:34:10.249739",
+    "user_id": 898852116,
+    "incident": {
+      "description": "Разлито масло",
+      "location": {
+        "latitude": 47.092546,
+        "longitude": 39.48061
+      },
+      "location_text": null,
+      "media_count": 1,
+      "media": [
+        {
+          "type": "photo",
+          "file_id": "AgACAgIAAxkBAAIOOWjmkn_PONH3NHm8UzOlHB4fPJ5fAALD-jEb3Qw5S6ufkQeGFVkaAQADAgADeQADNgQ",
+          "file_size": 141093
+        }
+      ],
+      "user_id": 898852116,
+      "username": "RightNigth"
+    }
+  },
+  {
+    "timestamp": "2025-10-08T19:40:39.552095",
+    "user_id": 898852116,
+    "incident": {
+      "description": "Ьвьвталкьсьатата",
+      "location": null,
+      "location_text": "Цотчивтв",
+      "media_count": 1,
+      "media": [
+        {
+          "type": "photo",
+          "file_id": "AgACAgIAAxkBAAIOY2jmk_6RO3Rc3VUKQ5BGa-kDZqd7AALj-jEb3Qw5S9HmbzpajY6iAQADAgADeQADNgQ",
+          "file_size": 100653
+        }
+      ],
+      "user_id": 898852116,
+      "username": "RightNigth"
+    }
+  },
+  {
+    "timestamp": "2025-10-08T19:54:21.219738",
+    "user_id": 898852116,
+    "incident": {
+      "description": "Твлыталутав",
+      "location": {
+        "latitude": 47.101723,
+        "longitude": 39.509787
+      },
+      "location_text": null,
+      "media_count": 1,
+      "media": [
+        {
+          "type": "photo",
+          "file_id": "AgACAgIAAxkBAAIOm2jmlzl2fe_gIAABdZvMgcmaVung2AACBfsxG90MOUuNbOiK4PLLewEAAwIAA3kAAzYE",
+          "file_size": 120566
+        }
+      ],
+      "user_id": 898852116,
+      "username": "RightNigth"
+    }
+  },
+  {
+    "timestamp": "2025-10-08T20:03:39.750791",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "media": [
+        {
+          "type": "photo"
+        }
+      ],
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-08T20:03:40.164845",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "media": [
+        {
+          "type": "photo",
+          "file_id": 
