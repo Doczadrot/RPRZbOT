@@ -339,14 +339,11 @@ def handle_danger_report_media(message, user_data, max_file_size_mb, max_video_s
         chat_id,
         username,
         "danger_media",
-        f"type: {
-            message.content_type}, size: {file_size}",
+        f"type: {message.content_type}, size: {file_size}",
     )
 
     remaining = 3 - len(user_data["media"])
-    return f"✅ Медиафайл добавлен ({
-        len(
-            user_data['media'])}/3). Осталось: {remaining}"
+    return f"✅ Медиафайл добавлен ({len(user_data['media'])}/3). Осталось: {remaining}"
 
 
 def finish_danger_report(message, user_data, placeholders):

@@ -101,8 +101,7 @@ def log_admin_error(error_type: str, error: Exception, context: dict = None):
         # Если это критическая ошибка, логируем отдельно
         if error_type in ["BOT_CRASH", "API_FAILURE", "CONFIG_ERROR"]:
             logger.critical(
-                f"🚨 КРИТИЧЕСКАЯ ОШИБКА | {error_type} | {
-                    str(error)}"
+                f"🚨 КРИТИЧЕСКАЯ ОШИБКА | {error_type} | {str(error)}"
             )
 
     except Exception as log_error:
@@ -187,7 +186,7 @@ def mask_sensitive_data(text: str) -> str:
     if not text:
         return ""
 
-    # Маскируем токен бота (формат: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz)
+    # Маскируем токен бота (формат: BOT_ID:BOT_TOKEN)
     if ":" in text and len(text) > 20:
         parts = text.split(":")
         if len(parts) == 2 and parts[0].isdigit():
@@ -335,8 +334,7 @@ def show_all_shelters(chat_id: int):
                         bot.send_photo(
                             chat_id,
                             photo_file,
-                            caption=f"🏠 {
-                                shelter['name']}",
+                            caption=f"🏠 {shelter['name']}",
                         )
                 except Exception as photo_error:
                     logger.warning(f"Не удалось отправить фото убежища {i}: {photo_error}")
@@ -1249,8 +1247,8 @@ if __name__ == "__main__":
         )
         logger.error("❌ BOT_TOKEN не настроен! Создайте файл .env с токеном бота")
         logger.info("📝 Пример содержимого .env:")
-        logger.info("BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")
-        logger.info("ADMIN_CHAT_ID=123456789")
+        logger.info("BOT_TOKEN=YOUR_BOT_TOKEN_HERE")
+        logger.info("ADMIN_CHAT_ID=YOUR_CHAT_ID_HERE")
         sys.exit(1)
 
     # Инициализация бота
