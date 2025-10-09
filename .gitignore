@@ -110,6 +110,9 @@ logs/*.log
 logs/*.csv
 logs/*.json
 
+# Assets (media files)
+assets/
+
 # Process files
 bot.lock
 bot.pid
