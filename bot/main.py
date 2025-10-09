@@ -81,7 +81,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")
 
 # Отладочная информация для Railway
-logger.info(f"🔍 Отладка переменных окружения:")
+logger.info("🔍 Отладка переменных окружения:")
 logger.info(f"BOT_TOKEN: {'установлен' if BOT_TOKEN else 'НЕ НАЙДЕН'}")
 logger.info(f"ADMIN_CHAT_ID: {'установлен' if ADMIN_CHAT_ID else 'НЕ НАЙДЕН'}")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
@@ -1393,8 +1393,8 @@ if __name__ == "__main__":
         )
         logger.error("❌ BOT_TOKEN не настроен!")
         logger.info("📝 Для локальной разработки создайте файл .env:")
-        logger.info("BOT_TOKEN=ваш_токен_от_botfather")
-        logger.info("ADMIN_CHAT_ID=ваш_chat_id")
+        logger.info("BOT_TOKEN=<ваш_токен>")
+        logger.info("ADMIN_CHAT_ID=<ваш_chat_id>")
         logger.info("📝 Для Railway добавьте переменные окружения в панели Variables")
         sys.exit(1)
 
