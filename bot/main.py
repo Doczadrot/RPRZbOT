@@ -909,8 +909,7 @@ def handle_location(message):
             )
     else:
         logger.bind(user_id=user_id).warning(
-            f"Геолокация получена в неподходящем состоянии: {
-                user_states.get(chat_id)}"
+            f"Геолокация получена в неподходящем состоянии: {user_states.get(chat_id)}"
         )
         bot.send_message(chat_id, "❌ Геолокация не нужна в текущем режиме")
 
@@ -964,8 +963,7 @@ def handle_media(message):
         bot.send_message(chat_id, result, reply_markup=get_media_keyboard())
     else:
         logger.bind(user_id=user_id).warning(
-            f"Медиафайл получен в неподходящем состоянии: {
-                user_states.get(chat_id)}"
+            f"Медиафайл получен в неподходящем состоянии: {user_states.get(chat_id)}"
         )
         bot.send_message(chat_id, "❌ Медиафайлы можно прикреплять только при сообщении об опасности")
 
