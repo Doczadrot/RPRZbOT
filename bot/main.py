@@ -4,36 +4,36 @@ MVP Telegram-бот по безопасности РПРЗ
 Основной файл бота с 4 основными функциями безопасности
 """
 
-from handlers import (
-    log_activity,
-    get_back_keyboard,
-    get_main_menu_keyboard,
-    get_media_keyboard,
-    handle_danger_report_text,
-    handle_danger_report_location,
-    handle_danger_report_media,
-    finish_danger_report,
-    handle_improvement_suggestion_text,
-    set_bot_instance,
-)
-import os
-import sys
-import json
 import csv
-import ssl
-import urllib3
-import time
-import psutil
+import json
+import os
 import signal
+import ssl
+import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
+import psutil
 import telebot
+import urllib3
+from dotenv import load_dotenv
+from handlers import (
+    finish_danger_report,
+    get_back_keyboard,
+    get_main_menu_keyboard,
+    get_media_keyboard,
+    handle_danger_report_location,
+    handle_danger_report_media,
+    handle_danger_report_text,
+    handle_improvement_suggestion_text,
+    log_activity,
+    set_bot_instance,
+)
+from loguru import logger
 from telebot import types
 from telebot.handler_backends import State, StatesGroup
 from telebot.storage import StateMemoryStorage
-from loguru import logger
-from dotenv import load_dotenv
 
 # Отключаем SSL предупреждения для тестирования
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -45,7 +45,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Импорт системы безопасности
 try:
-    from security import check_user_security, validate_user_text, validate_user_file
+    from security import check_user_security, validate_user_file, validate_user_text
 
     SECURITY_ENABLED = True
     logger.info("✅ Модуль безопасности загружен")
@@ -65,7 +65,11 @@ except ImportError as e:
 
 
 # Загрузка переменных окружения
-load_dotenv(".env")
+# Сначала загружаем .env файл (для локальной разработки)
+load_dotenv(".env", override=False)
+# Затем загружаем системные переменные окружения (для Railway/продакшена)
+# override=True позволяет системным переменным перезаписать .env файл
+load_dotenv(override=True)
 
 # Система блокировки процесса
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -75,6 +79,11 @@ PID_FILE = PROJECT_ROOT / "bot.pid"
 # Конфигурация
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")
+
+# Отладочная информация для Railway
+logger.info(f"🔍 Отладка переменных окружения:")
+logger.info(f"BOT_TOKEN: {'установлен' if BOT_TOKEN else 'НЕ НАЙДЕН'}")
+logger.info(f"ADMIN_CHAT_ID: {'установлен' if ADMIN_CHAT_ID else 'НЕ НАЙДЕН'}")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "20"))
 MAX_VIDEO_SIZE_MB = int(os.getenv("MAX_VIDEO_SIZE_MB", "300"))
@@ -96,13 +105,13 @@ def log_admin_error(error_type: str, error: Exception, context: dict = None):
         )
 
         # Логируем в системный лог с дополнительной информацией
-        logger.bind(error_type=error_type).error(f"{type(error).__name__}: {str(error)} | Context: {safe_context}")
+        logger.bind(error_type=error_type).error(
+            f"{type(error).__name__}: {str(error)} | Context: {safe_context}"
+        )
 
         # Если это критическая ошибка, логируем отдельно
         if error_type in ["BOT_CRASH", "API_FAILURE", "CONFIG_ERROR"]:
-            logger.critical(
-                f"🚨 КРИТИЧЕСКАЯ ОШИБКА | {error_type} | {str(error)}"
-            )
+            logger.critical(f"🚨 КРИТИЧЕСКАЯ ОШИБКА | {error_type} | {str(error)}")
 
     except Exception as log_error:
         # Если даже логирование не работает
@@ -118,7 +127,10 @@ def check_running_bots():
         try:
             if proc.info["name"] in ["python.exe", "python"]:
                 cmdline = " ".join(proc.info["cmdline"]) if proc.info["cmdline"] else ""
-                if any(keyword in cmdline.lower() for keyword in ["bot", "main.py", "run_bot.py"]):
+                if any(
+                    keyword in cmdline.lower()
+                    for keyword in ["bot", "main.py", "run_bot.py"]
+                ):
                     running_bots.append(proc.info["pid"])
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
@@ -139,7 +151,11 @@ def create_process_lock():
             return False
 
         # Создаем файл блокировки
-        lock_data = {"pid": current_pid, "started_at": datetime.now().isoformat(), "project_path": str(PROJECT_ROOT)}
+        lock_data = {
+            "pid": current_pid,
+            "started_at": datetime.now().isoformat(),
+            "project_path": str(PROJECT_ROOT),
+        }
 
         with open(LOCK_FILE, "w", encoding="utf-8") as f:
             json.dump(lock_data, f, indent=2, ensure_ascii=False)
@@ -264,7 +280,9 @@ def sanitize_user_input(text: str) -> str:
 # Функция для валидации пользовательского ввода
 
 
-def validate_user_input(text: str, min_length: int = 1, max_length: int = 1000) -> tuple[bool, str]:
+def validate_user_input(
+    text: str, min_length: int = 1, max_length: int = 1000
+) -> tuple[bool, str]:
     """Валидирует пользовательский ввод"""
     if not text:
         return False, "Пустой ввод"
@@ -319,7 +337,9 @@ def show_all_shelters(chat_id: int):
     shelters = placeholders.get("shelters", [])
 
     if not shelters:
-        bot.send_message(chat_id, "❌ Список убежищ недоступен", reply_markup=get_back_keyboard())
+        bot.send_message(
+            chat_id, "❌ Список убежищ недоступен", reply_markup=get_back_keyboard()
+        )
         return
 
     success_count = 0
@@ -337,7 +357,9 @@ def show_all_shelters(chat_id: int):
                             caption=f"🏠 {shelter['name']}",
                         )
                 except Exception as photo_error:
-                    logger.warning(f"Не удалось отправить фото убежища {i}: {photo_error}")
+                    logger.warning(
+                        f"Не удалось отправить фото убежища {i}: {photo_error}"
+                    )
 
             # Отправляем информацию об убежище (без Markdown для стабильности)
             shelter_text = (
@@ -377,7 +399,9 @@ def find_nearest_shelter(chat_id: int, user_lat: float, user_lon: float):
     shelters = placeholders.get("shelters", [])
 
     if not shelters:
-        bot.send_message(chat_id, "❌ Список убежищ недоступен", reply_markup=get_back_keyboard())
+        bot.send_message(
+            chat_id, "❌ Список убежищ недоступен", reply_markup=get_back_keyboard()
+        )
         return
 
     # Простой расчет расстояния (для MVP)
@@ -399,7 +423,11 @@ def find_nearest_shelter(chat_id: int, user_lat: float, user_lon: float):
             continue
 
     if not shelters_with_distance:
-        bot.send_message(chat_id, "❌ Не удалось рассчитать расстояния до убежищ", reply_markup=get_back_keyboard())
+        bot.send_message(
+            chat_id,
+            "❌ Не удалось рассчитать расстояния до убежищ",
+            reply_markup=get_back_keyboard(),
+        )
         return
 
     # Сортируем по расстоянию (от ближайшего к дальнему)
@@ -407,7 +435,9 @@ def find_nearest_shelter(chat_id: int, user_lat: float, user_lon: float):
 
     # Отправляем информацию о каждом убежище в порядке приоритета
     try:
-        bot.send_message(chat_id, "📍 Убежища отсортированы по расстоянию от вашей локации:")
+        bot.send_message(
+            chat_id, "📍 Убежища отсортированы по расстоянию от вашей локации:"
+        )
     except Exception as e:
         logger.error(f"Ошибка отправки заголовка: {e}")
 
@@ -422,7 +452,9 @@ def find_nearest_shelter(chat_id: int, user_lat: float, user_lon: float):
                         caption = f"{'🎯' if i == 1 else '🏠'} #{i} {shelter['name']}"
                         bot.send_photo(chat_id, photo_file, caption=caption)
                 except Exception as photo_error:
-                    logger.warning(f"Не удалось отправить фото убежища {i}: {photo_error}")
+                    logger.warning(
+                        f"Не удалось отправить фото убежища {i}: {photo_error}"
+                    )
 
             # Формируем текст с приоритетом (без Markdown для стабильности)
             priority_marker = "🎯 БЛИЖАЙШЕЕ" if i == 1 else f"#{i}"
@@ -452,7 +484,9 @@ def find_nearest_shelter(chat_id: int, user_lat: float, user_lon: float):
     except Exception as e:
         logger.error(f"Ошибка отправки финального сообщения: {e}")
         try:
-            bot.send_message(chat_id, "✅ Поиск завершен", reply_markup=get_main_menu_keyboard())
+            bot.send_message(
+                chat_id, "✅ Поиск завершен", reply_markup=get_main_menu_keyboard()
+            )
         except Exception:
             pass
 
@@ -491,7 +525,9 @@ def load_placeholders():
         with open("configs/data_placeholders.json", "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
-        log_admin_error("CONFIG_LOAD_ERROR", e, {"config_file": "configs/data_placeholders.json"})
+        log_admin_error(
+            "CONFIG_LOAD_ERROR", e, {"config_file": "configs/data_placeholders.json"}
+        )
         return {}
 
 
@@ -634,7 +670,11 @@ def history_command(message):
 
     except Exception as e:
         logger.error(f"Ошибка получения истории: {e}")
-        bot.send_message(chat_id, "❌ Ошибка при получении истории", reply_markup=get_main_menu_keyboard())
+        bot.send_message(
+            chat_id,
+            "❌ Ошибка при получении истории",
+            reply_markup=get_main_menu_keyboard(),
+        )
 
 
 # Обработчик текстовых сообщений
@@ -664,21 +704,23 @@ def handle_text(message):
 
     # Санитизируем и валидируем пользовательский ввод
     sanitized_text = sanitize_user_input(text)
-    is_valid, validation_error = validate_user_input(sanitized_text, min_length=1, max_length=1000)
+    is_valid, validation_error = validate_user_input(
+        sanitized_text, min_length=1, max_length=1000
+    )
 
     if not is_valid:
         logger.warning(f"Невалидный ввод от {username}: {validation_error}")
         bot.send_message(chat_id, f"❌ {validation_error}")
         return
 
-    logger.bind(user_id=user_id).info(f"Получено текстовое сообщение от {username}: {sanitized_text[:100]}...")
+    logger.bind(user_id=user_id).info(
+        f"Получено текстовое сообщение от {username}: {sanitized_text[:100]}..."
+    )
     logger.debug(
         f"Детали сообщения: chat_id={chat_id}, user_id={user_id}, "
         f"username={username}, text_length={len(sanitized_text)}"
     )
-    logger.debug(
-        f"Текущее состояние пользователя: {user_states.get(chat_id, 'None')}"
-    )
+    logger.debug(f"Текущее состояние пользователя: {user_states.get(chat_id, 'None')}")
 
     log_activity(chat_id, username, "text_message", sanitized_text)
 
@@ -688,13 +730,17 @@ def handle_text(message):
         user_data[chat_id] = {}
         user_history[chat_id] = []
         bot.set_state(chat_id, BotStates.main_menu)
-        logger.info(f"Пользователь {username} ({chat_id}) автоматически инициализирован")
+        logger.info(
+            f"Пользователь {username} ({chat_id}) автоматически инициализирован"
+        )
 
     # Обработка кнопки "Назад"
     if sanitized_text == "⬅️ Назад":
         user_states[chat_id] = "main_menu"
         bot.set_state(chat_id, BotStates.main_menu)
-        bot.send_message(chat_id, "🏠 Главное меню:", reply_markup=get_main_menu_keyboard())
+        bot.send_message(
+            chat_id, "🏠 Главное меню:", reply_markup=get_main_menu_keyboard()
+        )
         return
 
     # Обработка главного меню (включая случай когда состояние None)
@@ -709,22 +755,34 @@ def handle_text(message):
             bot.set_state(chat_id, BotStates.main_menu)
 
         if sanitized_text == "❗ Сообщите об опасности":
-            logger.bind(user_id=user_id).info("Пользователь выбрал 'Сообщить об опасности'")
+            logger.bind(user_id=user_id).info(
+                "Пользователь выбрал 'Сообщить об опасности'"
+            )
             start_danger_report(message)
         elif sanitized_text == "🏠 Ближайшее укрытие":
             logger.bind(user_id=user_id).info("Пользователь выбрал 'Ближайшее укрытие'")
             start_shelter_finder(message)
         elif sanitized_text == "💡 Предложение по улучшению":
-            logger.bind(user_id=user_id).info("Пользователь выбрал 'Предложение по улучшению'")
+            logger.bind(user_id=user_id).info(
+                "Пользователь выбрал 'Предложение по улучшению'"
+            )
             start_improvement_suggestion(message)
         else:
             # Любой другой текст в главном меню - показываем подсказку
-            logger.bind(user_id=user_id).warning(f"Неизвестная команда в главном меню: {sanitized_text}")
-            bot.send_message(chat_id, "❓ Выберите действие из меню:", reply_markup=get_main_menu_keyboard())
+            logger.bind(user_id=user_id).warning(
+                f"Неизвестная команда в главном меню: {sanitized_text}"
+            )
+            bot.send_message(
+                chat_id,
+                "❓ Выберите действие из меню:",
+                reply_markup=get_main_menu_keyboard(),
+            )
 
     # Обработка состояний
     elif user_states.get(chat_id) == "danger_report":
-        logger.bind(user_id=user_id).debug(f"Обработка состояния 'danger_report' для пользователя {username}")
+        logger.bind(user_id=user_id).debug(
+            f"Обработка состояния 'danger_report' для пользователя {username}"
+        )
         result = handle_danger_report_text(message, user_data[chat_id], placeholders)
         if isinstance(result, tuple):
             new_state, response = result
@@ -742,9 +800,15 @@ def handle_text(message):
                         parse_mode=response.get("parse_mode"),
                     )
                 elif response is not None:
-                    bot.send_message(chat_id, response, reply_markup=get_main_menu_keyboard())
+                    bot.send_message(
+                        chat_id, response, reply_markup=get_main_menu_keyboard()
+                    )
                 else:
-                    bot.send_message(chat_id, "🏠 Главное меню:", reply_markup=get_main_menu_keyboard())
+                    bot.send_message(
+                        chat_id,
+                        "🏠 Главное меню:",
+                        reply_markup=get_main_menu_keyboard(),
+                    )
             else:
                 if isinstance(response, dict):
                     bot.send_message(
@@ -754,9 +818,15 @@ def handle_text(message):
                         parse_mode=response.get("parse_mode"),
                     )
                 elif response is not None:
-                    bot.send_message(chat_id, response, reply_markup=get_back_keyboard())
+                    bot.send_message(
+                        chat_id, response, reply_markup=get_back_keyboard()
+                    )
                 else:
-                    bot.send_message(chat_id, "❓ Выберите действие:", reply_markup=get_back_keyboard())
+                    bot.send_message(
+                        chat_id,
+                        "❓ Выберите действие:",
+                        reply_markup=get_back_keyboard(),
+                    )
         else:
             bot.send_message(chat_id, result, reply_markup=get_back_keyboard())
 
@@ -764,13 +834,22 @@ def handle_text(message):
         if text == "⬅️ Назад":
             user_states[chat_id] = "main_menu"
             bot.set_state(chat_id, BotStates.main_menu)
-            bot.send_message(chat_id, "🏠 Главное меню:", reply_markup=get_main_menu_keyboard())
+            bot.send_message(
+                chat_id, "🏠 Главное меню:", reply_markup=get_main_menu_keyboard()
+            )
         elif text == "📋 Показать список убежищ":
             show_all_shelters(chat_id)
         elif text == "📍 Отправить геолокацию":
-            bot.send_message(chat_id, "📍 Нажмите кнопку 'Отправить геолокацию' для поиска ближайшего убежища")
+            bot.send_message(
+                chat_id,
+                "📍 Нажмите кнопку 'Отправить геолокацию' для поиска ближайшего убежища",
+            )
         else:
-            bot.send_message(chat_id, "❓ Выберите действие из меню:", reply_markup=get_back_keyboard())
+            bot.send_message(
+                chat_id,
+                "❓ Выберите действие из меню:",
+                reply_markup=get_back_keyboard(),
+            )
 
     elif user_states.get(chat_id) == "improvement_suggestion":
         result = handle_improvement_suggestion_text(message, placeholders, user_data)
@@ -780,18 +859,38 @@ def handle_text(message):
             if new_state == "main_menu":
                 bot.set_state(chat_id, BotStates.main_menu)
                 if isinstance(response, dict):
-                    bot.send_message(chat_id, response["text"], reply_markup=response.get("reply_markup"))
+                    bot.send_message(
+                        chat_id,
+                        response["text"],
+                        reply_markup=response.get("reply_markup"),
+                    )
                 elif response is not None:
-                    bot.send_message(chat_id, response, reply_markup=get_main_menu_keyboard())
+                    bot.send_message(
+                        chat_id, response, reply_markup=get_main_menu_keyboard()
+                    )
                 else:
-                    bot.send_message(chat_id, "🏠 Главное меню:", reply_markup=get_main_menu_keyboard())
+                    bot.send_message(
+                        chat_id,
+                        "🏠 Главное меню:",
+                        reply_markup=get_main_menu_keyboard(),
+                    )
             else:
                 if isinstance(response, dict):
-                    bot.send_message(chat_id, response["text"], reply_markup=response.get("reply_markup"))
+                    bot.send_message(
+                        chat_id,
+                        response["text"],
+                        reply_markup=response.get("reply_markup"),
+                    )
                 elif response is not None:
-                    bot.send_message(chat_id, response, reply_markup=get_back_keyboard())
+                    bot.send_message(
+                        chat_id, response, reply_markup=get_back_keyboard()
+                    )
                 else:
-                    bot.send_message(chat_id, "❓ Выберите действие:", reply_markup=get_back_keyboard())
+                    bot.send_message(
+                        chat_id,
+                        "❓ Выберите действие:",
+                        reply_markup=get_back_keyboard(),
+                    )
         else:
             bot.send_message(chat_id, result, reply_markup=get_back_keyboard())
 
@@ -839,7 +938,11 @@ def start_shelter_finder(message):
     markup.add(types.KeyboardButton("📋 Показать список убежищ"))
     markup.add(types.KeyboardButton("⬅️ Назад"))
 
-    bot.send_message(chat_id, "🏠 Поиск ближайшего укрытия\n\n" "Выберите действие:", reply_markup=markup)
+    bot.send_message(
+        chat_id,
+        "🏠 Поиск ближайшего укрытия\n\n" "Выберите действие:",
+        reply_markup=markup,
+    )
 
 
 def start_improvement_suggestion(message):
@@ -893,7 +996,9 @@ def handle_location(message):
             logger.warning(f"🚫 Заблокирована геолокация от {user_id}: {error_msg}")
             return
 
-    logger.bind(user_id=user_id).info(f"Получена геолокация от {username}: {user_lat}, {user_lon}")
+    logger.bind(user_id=user_id).info(
+        f"Получена геолокация от {username}: {user_lat}, {user_lon}"
+    )
 
     if user_states.get(chat_id) == "shelter_finder":
         # Ищем ближайшее убежище по геолокации
@@ -901,11 +1006,16 @@ def handle_location(message):
         find_nearest_shelter(chat_id, user_lat, user_lon)
     elif user_states.get(chat_id) == "danger_report":
         # Обрабатываем геолокацию через handlers
-        logger.bind(user_id=user_id).info("Обработка геолокации для сообщения об опасности")
+        logger.bind(user_id=user_id).info(
+            "Обработка геолокации для сообщения об опасности"
+        )
         result = handle_danger_report_location(message, user_data[chat_id])
         if isinstance(result, dict):
             bot.send_message(
-                chat_id, result["text"], reply_markup=result.get("reply_markup"), parse_mode=result.get("parse_mode")
+                chat_id,
+                result["text"],
+                reply_markup=result.get("reply_markup"),
+                parse_mode=result.get("parse_mode"),
             )
     else:
         logger.bind(user_id=user_id).warning(
@@ -948,24 +1058,36 @@ def handle_media(message):
 
         # Проверяем файл
         if file_size and mime_type:
-            max_size = MAX_VIDEO_SIZE_MB if content_type == "video" else MAX_FILE_SIZE_MB
-            is_valid, file_error = validate_user_file(file_size, mime_type, user_id, max_size)
+            max_size = (
+                MAX_VIDEO_SIZE_MB if content_type == "video" else MAX_FILE_SIZE_MB
+            )
+            is_valid, file_error = validate_user_file(
+                file_size, mime_type, user_id, max_size
+            )
             if not is_valid:
                 bot.send_message(chat_id, file_error)
                 logger.warning(f"🚫 Невалидный файл от {user_id}: {file_error}")
                 return
 
-    logger.bind(user_id=user_id).info(f"Получен медиафайл от {username}: {content_type}")
+    logger.bind(user_id=user_id).info(
+        f"Получен медиафайл от {username}: {content_type}"
+    )
 
     if user_states.get(chat_id) == "danger_report":
-        logger.bind(user_id=user_id).info("Обработка медиафайла для сообщения об опасности")
-        result = handle_danger_report_media(message, user_data[chat_id], MAX_FILE_SIZE_MB, MAX_VIDEO_SIZE_MB)
+        logger.bind(user_id=user_id).info(
+            "Обработка медиафайла для сообщения об опасности"
+        )
+        result = handle_danger_report_media(
+            message, user_data[chat_id], MAX_FILE_SIZE_MB, MAX_VIDEO_SIZE_MB
+        )
         bot.send_message(chat_id, result, reply_markup=get_media_keyboard())
     else:
         logger.bind(user_id=user_id).warning(
             f"Медиафайл получен в неподходящем состоянии: {user_states.get(chat_id)}"
         )
-        bot.send_message(chat_id, "❌ Медиафайлы можно прикреплять только при сообщении об опасности")
+        bot.send_message(
+            chat_id, "❌ Медиафайлы можно прикреплять только при сообщении об опасности"
+        )
 
 
 # Обработчик колбэков (inline кнопок)
@@ -983,9 +1105,13 @@ def handle_callback(call):
         if data == "back_to_menu":
             user_states[chat_id] = "main_menu"
             bot.set_state(chat_id, BotStates.main_menu)
-            bot.edit_message_text("🏠 Главное меню:", chat_id=chat_id, message_id=call.message.message_id)
+            bot.edit_message_text(
+                "🏠 Главное меню:", chat_id=chat_id, message_id=call.message.message_id
+            )
             bot.edit_message_reply_markup(
-                chat_id=chat_id, message_id=call.message.message_id, reply_markup=get_inline_main_menu()
+                chat_id=chat_id,
+                message_id=call.message.message_id,
+                reply_markup=get_inline_main_menu(),
             )
             bot.answer_callback_query(call.id, "Возврат в главное меню")
 
@@ -1018,8 +1144,12 @@ def handle_danger_callback(call):
     elif data == "danger_add_location":
         bot.answer_callback_query(call.id, "📍 Отправьте геолокацию")
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-        markup.add(types.KeyboardButton("📍 Отправить геолокацию", request_location=True))
-        bot.send_message(chat_id, "📍 Нажмите кнопку для отправки геолокации:", reply_markup=markup)
+        markup.add(
+            types.KeyboardButton("📍 Отправить геолокацию", request_location=True)
+        )
+        bot.send_message(
+            chat_id, "📍 Нажмите кнопку для отправки геолокации:", reply_markup=markup
+        )
 
     elif data == "danger_submit":
         bot.answer_callback_query(call.id, "✅ Отправка...")
@@ -1028,16 +1158,24 @@ def handle_danger_callback(call):
             new_state, response = result
             user_states[chat_id] = new_state
             if isinstance(response, dict):
-                bot.send_message(chat_id, response["text"], reply_markup=response.get("reply_markup"))
+                bot.send_message(
+                    chat_id, response["text"], reply_markup=response.get("reply_markup")
+                )
             else:
-                bot.send_message(chat_id, response, reply_markup=get_main_menu_keyboard())
+                bot.send_message(
+                    chat_id, response, reply_markup=get_main_menu_keyboard()
+                )
 
     elif data == "danger_cancel":
         bot.answer_callback_query(call.id, "❌ Отменено")
         user_data[chat_id].clear()
         user_states[chat_id] = "main_menu"
         bot.set_state(chat_id, BotStates.main_menu)
-        bot.send_message(chat_id, "❌ Сообщение об опасности отменено", reply_markup=get_main_menu_keyboard())
+        bot.send_message(
+            chat_id,
+            "❌ Сообщение об опасности отменено",
+            reply_markup=get_main_menu_keyboard(),
+        )
 
 
 def handle_suggestion_callback(call):
@@ -1065,19 +1203,25 @@ def handle_suggestion_callback(call):
                     with open(suggestions_file, "r", encoding="utf-8") as f:
                         suggestions = json.load(f)
 
-                    suggestion = next((s for s in suggestions if s["id"] == suggestion_id), None)
+                    suggestion = next(
+                        (s for s in suggestions if s["id"] == suggestion_id), None
+                    )
                     if suggestion:
                         markup = types.InlineKeyboardMarkup()
                         markup.add(
                             types.InlineKeyboardButton(
-                                f"👍 {suggestion.get('votes', 0)}", callback_data=f"vote_yes_{suggestion_id}"
+                                f"👍 {suggestion.get('votes', 0)}",
+                                callback_data=f"vote_yes_{suggestion_id}",
                             ),
                             types.InlineKeyboardButton(
-                                f"👎 {suggestion.get('downvotes', 0)}", callback_data=f"vote_no_{suggestion_id}"
+                                f"👎 {suggestion.get('downvotes', 0)}",
+                                callback_data=f"vote_no_{suggestion_id}",
                             ),
                         )
                         bot.edit_message_reply_markup(
-                            chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup
+                            chat_id=chat_id,
+                            message_id=call.message.message_id,
+                            reply_markup=markup,
                         )
             except Exception as e:
                 logger.error(f"Ошибка обновления голосов: {e}")
@@ -1136,9 +1280,19 @@ def process_vote(user_id: int, suggestion_id: int, vote_type: str) -> bool:
 def get_inline_main_menu():
     """Создаёт inline клавиатуру главного меню"""
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("❗ Сообщить об опасности", callback_data="start_danger_report"))
-    markup.add(types.InlineKeyboardButton("🏠 Ближайшее укрытие", callback_data="start_shelter_finder"))
-    markup.add(types.InlineKeyboardButton("💡 Предложение", callback_data="start_improvement"))
+    markup.add(
+        types.InlineKeyboardButton(
+            "❗ Сообщить об опасности", callback_data="start_danger_report"
+        )
+    )
+    markup.add(
+        types.InlineKeyboardButton(
+            "🏠 Ближайшее укрытие", callback_data="start_shelter_finder"
+        )
+    )
+    markup.add(
+        types.InlineKeyboardButton("💡 Предложение", callback_data="start_improvement")
+    )
     return markup
 
 
@@ -1237,10 +1391,11 @@ if __name__ == "__main__":
             Exception("BOT_TOKEN не найден"),
             {"config_file": ".env", "required_vars": ["BOT_TOKEN", "ADMIN_CHAT_ID"]},
         )
-        logger.error("❌ BOT_TOKEN не настроен! Создайте файл .env с токеном бота")
-        logger.info("📝 Пример содержимого .env:")
-        logger.info("BOT_TOKEN=your_token_from_botfather")
+        logger.error("❌ BOT_TOKEN не настроен!")
+        logger.info("📝 Для локальной разработки создайте файл .env:")
+        logger.info("BOT_TOKEN=ваш_токен_от_botfather")
         logger.info("ADMIN_CHAT_ID=ваш_chat_id")
+        logger.info("📝 Для Railway добавьте переменные окружения в панели Variables")
         sys.exit(1)
 
     # Инициализация бота
@@ -1296,7 +1451,8 @@ if __name__ == "__main__":
             python_processes = [
                 p
                 for p in psutil.process_iter(["pid", "name", "cmdline"])
-                if p.info["name"] == "python.exe" and "main.py" in " ".join(p.info["cmdline"] or [])
+                if p.info["name"] == "python.exe"
+                and "main.py" in " ".join(p.info["cmdline"] or [])
             ]
 
             if len(python_processes) > 1:
@@ -1330,7 +1486,10 @@ if __name__ == "__main__":
             log_admin_error(
                 "BOT_POLLING_ERROR",
                 polling_error,
-                {"error_type": "polling_critical", "bot_token_masked": mask_sensitive_data(BOT_TOKEN)},
+                {
+                    "error_type": "polling_critical",
+                    "bot_token_masked": mask_sensitive_data(BOT_TOKEN),
+                },
             )
 
             if "409" in error_str or "Conflict" in error_str:
@@ -1354,7 +1513,11 @@ if __name__ == "__main__":
                     # Безопасная остановка процессов через psutil
                     try:
                         for proc in psutil.process_iter(["pid", "name", "cmdline"]):
-                            if proc.info["name"] == "python.exe" and "main.py" in " ".join(proc.info["cmdline"] or []):
+                            if proc.info[
+                                "name"
+                            ] == "python.exe" and "main.py" in " ".join(
+                                proc.info["cmdline"] or []
+                            ):
                                 try:
                                     proc.terminate()
                                     logger.info(
@@ -1379,7 +1542,9 @@ if __name__ == "__main__":
                     bot.polling(none_stop=True, interval=3, timeout=20)
 
                 except Exception as auto_stop_error:
-                    logger.error(f"❌ Ошибка автоматической остановки: {auto_stop_error}")
+                    logger.error(
+                        f"❌ Ошибка автоматической остановки: {auto_stop_error}"
+                    )
                     logger.info("🔄 Попробуйте запустить restart_clean.py")
                     sys.exit(1)
             else:
