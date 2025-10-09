@@ -260,7 +260,7 @@ class TestCommandHandlers:
     @patch('bot.main.user_data', {})
     @patch('bot.main.user_states', {})
     @patch('bot.main.bot', Mock())
-    def test_start_command(self):
+    def test_start_command(self, mock_bot, mock_states, mock_data, mock_hist, mock_bot_states):
         """Тест команды /start"""
         mock_message = Mock()
         mock_message.chat.id = 12345
@@ -273,7 +273,7 @@ class TestCommandHandlers:
     
     @patch('bot.main.log_activity')
     @patch('bot.main.bot', Mock())
-    def test_help_command(self):
+    def test_help_command(self, mock_bot, mock_log):
         """Тест команды /help"""
         mock_message = Mock()
         mock_message.chat.id = 12345
@@ -286,7 +286,7 @@ class TestCommandHandlers:
     @patch('os.path.exists', return_value=False)
     @patch('bot.main.log_activity')
     @patch('bot.main.bot', Mock())
-    def test_history_command_no_file(self):
+    def test_history_command_no_file(self, mock_bot, mock_log, mock_exists):
         """Тест команды /my_history без файла истории"""
         mock_message = Mock()
         mock_message.chat.id = 12345
@@ -307,7 +307,7 @@ class TestMessageHandlers:
     @patch('bot.main.user_data', {})
     @patch('bot.main.user_states', {})
     @patch('bot.main.bot', Mock())
-    def test_handle_text_main_menu(self):
+    def test_handle_text_main_menu(self, mock_bot, mock_states, mock_data, mock_hist, mock_bot_states, mock_log, mock_start):
         """Тест обработки текста в главном меню"""
         mock_message = Mock()
         mock_message.chat.id = 12345
@@ -324,7 +324,7 @@ class TestMessageHandlers:
     @patch('bot.main.user_data', {})
     @patch('bot.main.user_states', {})
     @patch('bot.main.bot', Mock())
-    def test_start_danger_report(self):
+    def test_start_danger_report(self, mock_bot, mock_states, mock_data, mock_bot_states, mock_log):
         """Тест начала процесса сообщения об опасности"""
         mock_message = Mock()
         mock_message.chat.id = 12345
@@ -338,7 +338,7 @@ class TestMessageHandlers:
     @patch('bot.main.BotStates', Mock())
     @patch('bot.main.user_states', {})
     @patch('bot.main.bot', Mock())
-    def test_start_shelter_finder(self):
+    def test_start_shelter_finder(self, mock_bot, mock_states, mock_bot_states, mock_log):
         """Тест начала поиска убежищ"""
         mock_message = Mock()
         mock_message.chat.id = 12345
@@ -353,7 +353,7 @@ class TestMessageHandlers:
     @patch('bot.main.user_data', {})
     @patch('bot.main.user_states', {})
     @patch('bot.main.bot', Mock())
-    def test_start_improvement_suggestion(self):
+    def test_start_improvement_suggestion(self, mock_bot, mock_states, mock_data, mock_bot_states, mock_log):
         """Тест начала отправки предложения"""
         mock_message = Mock()
         mock_message.chat.id = 12345
@@ -370,7 +370,7 @@ class TestLocationAndMediaHandlers:
     @patch('bot.main.find_nearest_shelter')
     @patch('bot.main.user_states', {12345: 'shelter_finder'})
     @patch('bot.main.bot', Mock())
-    def test_handle_location_shelter_finder(self, mock_find):
+    def test_handle_location_shelter_finder(self, mock_bot, mock_states, mock_find):
         """Тест обработки геолокации для поиска убежищ"""
         mock_message = Mock()
         mock_message.chat.id = 12345
@@ -387,7 +387,7 @@ class TestLocationAndMediaHandlers:
     @patch('bot.main.user_data', {})
     @patch('bot.main.user_states', {12345: 'danger_report'})
     @patch('bot.main.bot', Mock())
-    def test_handle_location_danger_report(self, mock_handler):
+    def test_handle_location_danger_report(self, mock_bot, mock_states, mock_data, mock_handler):
         """Тест обработки геолокации для сообщения об опасности"""
         mock_message = Mock()
         mock_message.chat.id = 12345
@@ -406,7 +406,7 @@ class TestLocationAndMediaHandlers:
     @patch('bot.main.user_data', {})
     @patch('bot.main.user_states', {12345: 'danger_report'})
     @patch('bot.main.bot', Mock())
-    def test_handle_media(self, mock_handler):
+    def test_handle_media(self, mock_bot, mock_states, mock_data, mock_max_file, mock_max_video, mock_handler):
         """Тест обработки медиафайлов"""
         mock_message = Mock()
         mock_message.chat.id = 12345

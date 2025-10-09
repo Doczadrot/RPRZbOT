@@ -356,8 +356,10 @@ def show_all_shelters(chat_id: int):
 
     # Финальное сообщение
     try:
-        final_text = f"✅ Показано убежищ: {success_count} из {
-            len(shelters)}\n\nВсе убежища оснащены современными системами безопасности."
+        final_text = (
+            f"✅ Показано убежищ: {success_count} из {len(shelters)}\n\n"
+            f"Все убежища оснащены современными системами безопасности."
+        )
         bot.send_message(chat_id, final_text, reply_markup=get_back_keyboard())
     except Exception as e:
         logger.error(f"Ошибка отправки финального сообщения: {e}")
@@ -417,9 +419,7 @@ def find_nearest_shelter(chat_id: int, user_lat: float, user_lon: float):
             if photo_path and os.path.exists(photo_path):
                 try:
                     with open(photo_path, "rb") as photo_file:
-                        caption = f"{
-                            '🎯' if i == 1 else '🏠'} #{i} {
-                            shelter['name']}"
+                        caption = f"{'🎯' if i == 1 else '🏠'} #{i} {shelter['name']}"
                         bot.send_photo(chat_id, photo_file, caption=caption)
                 except Exception as photo_error:
                     logger.warning(f"Не удалось отправить фото убежища {i}: {photo_error}")
@@ -506,8 +506,7 @@ def handle_uninitialized_user(message):
     username = message.from_user.username or "Unknown"
 
     logger.info(
-        f"Неинициализированный пользователь {username} ({chat_id}) отправил: {
-            message.text}"
+        f"Неинициализированный пользователь {username} ({chat_id}) отправил: {message.text}"
     )
 
     # Инициализируем пользователя
@@ -1247,8 +1246,8 @@ if __name__ == "__main__":
         )
         logger.error("❌ BOT_TOKEN не настроен! Создайте файл .env с токеном бота")
         logger.info("📝 Пример содержимого .env:")
-        logger.info("BOT_TOKEN=YOUR_BOT_TOKEN_HERE")
-        logger.info("ADMIN_CHAT_ID=YOUR_CHAT_ID_HERE")
+        logger.info("BOT_TOKEN=PLACEHOLDER_BOT_TOKEN")
+        logger.info("ADMIN_CHAT_ID=PLACEHOLDER_CHAT_ID")
         sys.exit(1)
 
     # Инициализация бота
