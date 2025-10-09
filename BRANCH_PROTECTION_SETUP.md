@@ -53,7 +53,7 @@
 
 - ✅ **Require status checks to pass before merging**
   - ✅ Require branches to be up to date before merging
-  
+
   В поиске **Status checks** найдите и добавьте:
   - `🐍 Python Tests` (обязательно!)
   - `🔍 Code Quality` (рекомендуется)
@@ -280,7 +280,7 @@ git push origin hotfix/urgent-fix
 
 **Причина:** Тесты не проходят
 
-**Решение:** 
+**Решение:**
 
 ```bash
 # Запустите тесты локально
@@ -308,7 +308,7 @@ git push origin feature/my-feature
 
 ### Проблема: "Need approval but I'm the only developer"
 
-**Решение:** 
+**Решение:**
 
 В настройках Branch Protection:
 - Уберите галочку с **Include administrators**
@@ -387,4 +387,3 @@ gh api repos/:owner/:repo/branches/main
 **✅ Готово! Ваша main ветка теперь защищена!**
 
 *Создано для проекта RPRZ Safety Bot | Октябрь 2025*
-

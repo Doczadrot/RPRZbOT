@@ -9,21 +9,21 @@ jobs:
   pr-validation:
     name: 🔍 PR Validation
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v3
-    
+
     - name: 🐍 Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-    
+
     - name: 📦 Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-    
+
     - name: 🧪 Quick tests
       run: |
         pip install pytest pytest-cov
@@ -32,7 +32,7 @@ jobs:
         BOT_TOKEN: test_token_1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
         ADMIN_CHAT_ID: 123456789
         LOG_LEVEL: ERROR
-    
+
     - name: ✅ PR validation passed
       run: echo "✅ PR готов к review"
 
@@ -40,11 +40,11 @@ jobs:
     name: 📢 Staging Deployment Info
     runs-on: ubuntu-latest
     needs: pr-validation
-    
+
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v3
-    
+
     - name: 📊 PR Information
       run: |
         echo "🎭 Staging Deployment для PR #${{ github.event.pull_request.number }}"
@@ -52,7 +52,7 @@ jobs:
         echo "👤 Author: ${{ github.event.pull_request.user.login }}"
         echo "🌿 Branch: ${{ github.head_ref }}"
         echo "📝 Commit: ${{ github.event.pull_request.head.sha }}"
-    
+
     - name: 💡 Railway PR Deployment
       run: |
         echo "🚂 Railway PR Deployments:"
@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: pr-validation
     if: github.event.action == 'opened'
-    
+
     steps:
     - name: 💬 Add PR comment
       uses: actions/github-script@v6
@@ -78,29 +78,29 @@ jobs:
         script: |
           const prNumber = context.issue.number;
           const comment = `## 🎭 Staging Deployment
-          
+
           ✅ PR validation прошла успешно!
-          
+
           ### 🚂 Railway Preview Deployment
-          
+
           После настройки Railway PR Deployments, здесь появится ссылка на staging окружение.
-          
+
           **Настройка Railway PR Deployments:**
           1. Railway Dashboard → Project Settings
           2. Включите "PR Deployments"
           3. Railway автоматически создаст preview URL
-          
+
           ### 📋 Checklist перед merge:
           - [ ] Все тесты проходят
           - [ ] Code review выполнен
           - [ ] Нет конфликтов с main
           - [ ] Документация обновлена (если требуется)
           - [ ] Покрытие кода ≥70%
-          
+
           ---
-          
+
           🤖 Автоматический комментарий от CI/CD`;
-          
+
           github.rest.issues.createComment({
             owner: context.repo.owner,
             repo: context.repo.repo,
@@ -112,15 +112,15 @@ jobs:
     name: 🔒 Security Check for PR
     runs-on: ubuntu-latest
     needs: pr-validation
-    
+
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v3
-    
+
     - name: 🔍 Check for sensitive data
       run: |
         echo "🔍 Проверка на утечку секретов в PR..."
-        
+
         # Проверка на хардкод секретов
         if git diff origin/main...HEAD | grep -iE "(password|secret|token|api_key|private_key)" | grep -v "BOT_TOKEN.*os.getenv" | grep -v "#"; then
           echo "⚠️ Возможная утечка секретов обнаружена!"
@@ -129,7 +129,7 @@ jobs:
           echo "✅ Явных секретов не обнаружено"
         fi
       continue-on-error: true
-    
+
     - name: 🔍 Check for .env files
       run: |
         if git diff origin/main...HEAD --name-only | grep -E "\.env$|\.env\."; then
@@ -143,23 +143,23 @@ jobs:
     name: 📊 Coverage Comparison
     runs-on: ubuntu-latest
     needs: pr-validation
-    
+
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
-    
+
     - name: 🐍 Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-    
+
     - name: 📦 Install dependencies
       run: |
         pip install -r requirements.txt
         pip install pytest pytest-cov
-    
+
     - name: 📊 Generate coverage for PR
       run: |
         python -m pytest tests/ --cov=bot --cov-report=xml --cov-report=term
@@ -168,7 +168,7 @@ jobs:
         ADMIN_CHAT_ID: 123456789
         LOG_LEVEL: ERROR
       continue-on-error: true
-    
+
     - name: 📈 Check coverage
       run: |
         python scripts/check_coverage.py || echo "⚠️ Coverage below threshold"
@@ -179,7 +179,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [pr-validation, security-check, coverage-diff]
     if: always()
-    
+
     steps:
     - name: 📊 Summary
       run: |
@@ -195,4 +195,3 @@ jobs:
         else
           echo "❌ PR требует исправлений"
         fi
-

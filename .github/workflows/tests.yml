@@ -10,20 +10,20 @@ jobs:
   test:
     name: 🐍 Python Tests
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         python-version: ['3.10']
-    
+
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v3
-    
+
     - name: 🐍 Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    
+
     - name: 📦 Cache pip packages
       uses: actions/cache@v3
       with:
@@ -31,12 +31,12 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
-    
+
     - name: 📥 Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-    
+
     - name: 🧪 Run tests
       run: |
         python -m pytest tests/ -v --tb=short --maxfail=5
@@ -44,7 +44,7 @@ jobs:
         BOT_TOKEN: test_token_1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
         ADMIN_CHAT_ID: 123456789
         LOG_LEVEL: ERROR
-    
+
     - name: 📊 Run tests with coverage
       run: |
         pip install pytest-cov
@@ -53,65 +53,65 @@ jobs:
         BOT_TOKEN: test_token_1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
         ADMIN_CHAT_ID: 123456789
         LOG_LEVEL: ERROR
-    
+
     - name: 📈 Check coverage threshold (70%)
       run: |
         python scripts/check_coverage.py
       continue-on-error: false
-    
+
     - name: 📤 Upload coverage reports
       uses: actions/upload-artifact@v4
       with:
         name: coverage-report
         path: htmlcov/
-    
+
   code-quality:
     name: 🔍 Code Quality
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v3
-    
+
     - name: 🐍 Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-    
+
     - name: 📥 Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install flake8 black isort
-    
+
     - name: 🔍 Check with flake8
       run: |
         # Проверка синтаксиса и стиля кода
         flake8 bot/ --count --max-line-length=127 --statistics --show-source
       continue-on-error: true
-    
+
     - name: 🎨 Check code formatting with black
       run: |
         black --check --diff bot/
       continue-on-error: true
-    
+
     - name: 📦 Check imports with isort
       run: |
         isort --check-only --diff bot/
       continue-on-error: true
-  
+
   security:
     name: 🔒 Security Check
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v3
-    
+
     - name: 🐍 Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-    
+
     - name: 🔒 Check for secrets in code
       run: |
         # Проверка на случайные секреты в коде
@@ -121,7 +121,7 @@ jobs:
         else
           echo "✅ Секреты не найдены в коде"
         fi
-    
+
     - name: 🔍 Check for .env in git
       run: |
         if git ls-files | grep -E "\.env$|\.env\.local$"; then
@@ -130,60 +130,59 @@ jobs:
         else
           echo "✅ .env файлы не в Git"
         fi
-    
+
     - name: 📦 Install safety
       run: pip install safety
-    
+
     - name: 🛡️ Check dependencies for vulnerabilities
       run: |
         pip install -r requirements.txt
         safety check --json
       continue-on-error: true
-  
+
   documentation:
     name: 📖 Documentation Quality
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v3
-    
+
     - name: 🐍 Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-    
+
     - name: 🔍 Check TODO/FIXME in code
       run: |
         python scripts/check_todos.py
       continue-on-error: true
-    
+
     - name: 📝 Check markdown files
       run: |
         # Установка markdownlint-cli2 через npx
         npx --yes markdownlint-cli2 "**/*.md" "#node_modules" "#htmlcov" || echo "⚠️ Markdown issues found"
       continue-on-error: true
-  
+
   deploy-ready:
     name: 🚀 Deploy Readiness Check
     runs-on: ubuntu-latest
     needs: [test, code-quality, security, documentation]
-    
+
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v3
-    
+
     - name: 🐍 Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-    
+
     - name: 🔍 Check deploy readiness
       run: |
         python check_deploy_ready.py
-    
+
     - name: ✅ All checks passed
       run: |
         echo "🎉 Все проверки пройдены!"
         echo "✅ Готов к деплою на Railway"
-
