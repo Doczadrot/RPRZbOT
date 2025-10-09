@@ -1,0 +1,53 @@
+# Автоматическая нормализация окончаний строк
+* text=auto
+
+# Python файлы всегда используют LF
+*.py text eol=lf
+*.pyx text eol=lf
+*.pyi text eol=lf
+
+# Shell скрипты всегда используют LF
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Batch файлы всегда используют CRLF (для Windows)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# JSON, YAML, TOML, XML, Markdown используют LF
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+*.xml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+
+# Конфигурационные файлы используют LF
+*.ini text eol=lf
+*.cfg text eol=lf
+*.conf text eol=lf
+.env* text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+Dockerfile text eol=lf
+Procfile text eol=lf
+requirements.txt text eol=lf
+runtime.txt text eol=lf
+
+# Бинарные файлы
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.pyc binary
+*.pyd binary
+*.so binary
+*.dll binary
+*.exe binary

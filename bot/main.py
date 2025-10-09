@@ -673,7 +673,8 @@ def handle_text(message):
 
     logger.bind(user_id=user_id).info(f"Получено текстовое сообщение от {username}: {sanitized_text[:100]}...")
     logger.debug(
-        f"Детали сообщения: chat_id={chat_id}, user_id={user_id}, username={username}, text_length={len(sanitized_text)}"
+        f"Детали сообщения: chat_id={chat_id}, user_id={user_id}, "
+        f"username={username}, text_length={len(sanitized_text)}"
     )
     logger.debug(
         f"Текущее состояние пользователя: {user_states.get(chat_id, 'None')}"

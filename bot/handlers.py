@@ -375,7 +375,9 @@ def finish_danger_report(message, user_data, placeholders):
             admin_text += f"👤 Пользователь: ID {chat_id}\n"
             admin_text += f"📝 Описание: {incident_data['description']}\n"
             if incident_data["location"]:
-                admin_text += f"📍 Координаты: {incident_data['location']['latitude']}, {incident_data['location']['longitude']}\n"
+                lat = incident_data['location']['latitude']
+                lon = incident_data['location']['longitude']
+                admin_text += f"📍 Координаты: {lat}, {lon}\n"
             elif incident_data["location_text"]:
                 admin_text += f"📍 Место: {incident_data['location_text']}\n"
             else:
