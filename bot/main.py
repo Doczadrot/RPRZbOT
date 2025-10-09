@@ -699,8 +699,7 @@ def handle_text(message):
     # Обработка главного меню (включая случай когда состояние None)
     if user_states.get(chat_id) in ["main_menu", None]:
         logger.bind(user_id=user_id).debug(
-            f"Обработка главного меню для пользователя {username}, состояние: {
-                user_states.get(chat_id)}"
+            f"Обработка главного меню для пользователя {username}, состояние: {user_states.get(chat_id)}"
         )
 
         # Если состояние None, устанавливаем main_menu
