@@ -383,8 +383,7 @@ def finish_danger_report(message, user_data, placeholders):
             else:
                 admin_text += "📍 Место: Не указано\n"
             admin_text += f"📷 Медиафайлов: {incident_data['media_count']}\n"
-            admin_text += f"🕐 Время: {
-                datetime.now().strftime('%d.%m.%Y %H:%M')}"
+            admin_text += f"🕐 Время: {datetime.now().strftime('%d.%m.%Y %H:%M')}"
 
             logger.info(f"Отправка админу в Telegram: {admin_text}")
 
