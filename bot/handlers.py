@@ -288,9 +288,7 @@ def handle_danger_report_location(message, user_data):
         chat_id,
         username,
         "danger_location",
-        f"lat: {
-            message.location.latitude}, lon: {
-            message.location.longitude}",
+        f"lat: {message.location.latitude}, lon: {message.location.longitude}",
     )
 
     return {
