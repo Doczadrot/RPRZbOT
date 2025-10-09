@@ -1301,8 +1301,7 @@ if __name__ == "__main__":
 
             if len(python_processes) > 1:
                 logger.warning(
-                    f"Найдено {
-                        len(python_processes)} экземпляров Python с main.py"
+                    f"Найдено {len(python_processes)} экземпляров Python с main.py"
                 )
                 # Оставляем первый, остальные убиваем
                 for proc in python_processes[1:]:
@@ -1359,8 +1358,7 @@ if __name__ == "__main__":
                                 try:
                                     proc.terminate()
                                     logger.info(
-                                        f"Остановлен процесс {
-                                            proc.info['pid']}"
+                                        f"Остановлен процесс {proc.info['pid']}"
                                     )
                                 except Exception:
                                     pass

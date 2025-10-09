@@ -623,8 +623,7 @@ def show_popular_suggestions(message):
 
         text = "🏆 ТОП-10 ПОПУЛЯРНЫХ ПРЕДЛОЖЕНИЙ:\n\n"
         for i, sugg in enumerate(popular, 1):
-            text += f"{i}. 👍 {sugg.get('votes',
-                                       0)} | {sugg['text'][:50]}...\n\n"
+            text += f"{i}. 👍 {sugg.get('votes', 0)} | {sugg['text'][:50]}...\n\n"
 
         return {"text": text, "reply_markup": get_back_keyboard()}
 
@@ -653,8 +652,7 @@ def show_user_suggestions(message):
 
         text = "📋 ВАШИ ПРЕДЛОЖЕНИЯ:\n\n"
         for i, sugg in enumerate(user_suggestions, 1):
-            text += f"{i}. 👍 {sugg.get('votes',
-                                       0)} | {sugg['text'][:50]}...\n\n"
+            text += f"{i}. 👍 {sugg.get('votes', 0)} | {sugg['text'][:50]}...\n\n"
 
         return {"text": text, "reply_markup": get_back_keyboard()}
 
