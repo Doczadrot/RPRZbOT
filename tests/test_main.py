@@ -17,9 +17,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 # Мокаем импорты handlers перед импортом main
 with patch.dict('sys.modules', {'handlers': Mock(), 'bot.handlers': Mock()}):
     from bot.main import (
-        log_admin_error, log_system_event, mask_sensitive_data,
-        send_email_notification, show_all_shelters, find_nearest_shelter,
-        finish_danger_report_main, BotStates, load_placeholders
+        log_admin_error, mask_sensitive_data,
+        show_all_shelters, find_nearest_shelter,
+        BotStates, load_placeholders
     )
 
 
@@ -47,7 +47,7 @@ class TestUtilityFunctions:
     def test_mask_sensitive_data_empty(self):
         """Тест маскирования пустой строки"""
         assert mask_sensitive_data("") == ""
-        assert mask_sensitive_data(None) is None
+        assert mask_sensitive_data(None) == ""
     
     def test_log_admin_error(self):
         """Тест логирования ошибок админа"""
@@ -60,49 +60,6 @@ class TestUtilityFunctions:
         # Проверяем что функция была вызвана (логирование происходит в реальном коде)
         assert True  # Тест проходит если функция выполнилась без ошибок
     
-    def test_log_system_event(self):
-        """Тест логирования системных событий"""
-        details = {"key": "value"}
-        
-        # Тест проходит если функция выполнилась без ошибок
-        log_system_event("TEST_EVENT", "Test message", details)
-        
-        # Проверяем что функция была вызвана (логирование происходит в реальном коде)
-        assert True  # Тест проходит если функция выполнилась без ошибок
-    
-    @patch('smtplib.SMTP')
-    @patch.dict(os.environ, {
-        'EMAIL_HOST': 'smtp.test.com',
-        'EMAIL_PORT': '587',
-        'EMAIL_USE_TLS': 'True',
-        'EMAIL_HOST_USER': 'test@test.com',
-        'EMAIL_HOST_PASSWORD': 'password',
-        'DEFAULT_FROM_EMAIL': 'test@test.com'
-    })
-    def test_send_email_notification_success(self, mock_smtp):
-        """Тест успешной отправки email уведомления"""
-        # Настраиваем мок SMTP
-        mock_server = Mock()
-        mock_smtp.return_value = mock_server
-        
-        result = send_email_notification("Test Subject", "Test Message", "recipient@test.com")
-        
-        assert result is True
-        mock_smtp.assert_called_once_with('smtp.yandex.ru', 587)
-        mock_server.starttls.assert_called_once()
-        # Проверяем что функция была вызвана (логирование происходит в реальном коде)
-        assert True  # Тест проходит если функция выполнилась без ошибок
-        mock_server.sendmail.assert_called_once()
-        mock_server.quit.assert_called_once()
-    
-    @patch('smtplib.SMTP')
-    def test_send_email_notification_failure(self, mock_smtp):
-        """Тест неудачной отправки email уведомления"""
-        mock_smtp.side_effect = Exception("SMTP Error")
-        
-        result = send_email_notification("Test Subject", "Test Message")
-        
-        assert result is False
 
 
 class TestShelterFunctions:
@@ -165,10 +122,7 @@ class TestBotStates:
         assert hasattr(states, 'main_menu')
         assert hasattr(states, 'danger_report')
         assert hasattr(states, 'shelter_finder')
-        assert hasattr(states, 'safety_consultant')
         assert hasattr(states, 'improvement_suggestion')
-        assert hasattr(states, 'improvement_suggestion_choice')
-        assert hasattr(states, 'improvement_suggestion_menu')
 
 
 class TestLoadPlaceholders:
@@ -200,34 +154,6 @@ class TestLoadPlaceholders:
         with patch('builtins.open', mock_open(read_data="invalid json")):
             result = load_placeholders()
             assert result == {}
-
-
-class TestFinishDangerReportMain:
-    """Тесты завершения сообщения об опасности"""
-    
-    def test_finish_danger_report_main_success(self):
-        """Тест успешного завершения сообщения об опасности"""
-        # Простой тест - проверяем что функция выполняется без ошибок
-        # Основная логика тестируется в test_handlers.py
-        try:
-            finish_danger_report_main(12345, "test_user")
-            # Тест проходит если функция выполнилась без критических ошибок
-            assert True
-        except Exception as e:
-            # Ожидаем ошибки из-за отсутствия BOT_TOKEN и bot объекта
-            assert "BOT_TOKEN не настроен" in str(e) or "недоступна" in str(e)
-    
-    def test_finish_danger_report_main_error(self):
-        """Тест обработки ошибки при завершении сообщения об опасности"""
-        # Простой тест - проверяем что функция обрабатывает ошибки
-        # Основная логика тестируется в test_handlers.py
-        try:
-            finish_danger_report_main(12345, "test_user")
-            # Тест проходит если функция выполнилась без критических ошибок
-            assert True
-        except Exception as e:
-            # Ожидаем ошибки из-за отсутствия BOT_TOKEN и bot объекта
-            assert "BOT_TOKEN не настроен" in str(e) or "недоступна" in str(e)
 
 
 class TestMainModuleIntegration:

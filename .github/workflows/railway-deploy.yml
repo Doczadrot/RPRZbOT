@@ -1,0 +1,50 @@
+name: 🚂 Railway Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: 🚀 Deploy to Railway
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v3
+    
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: 📦 Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: 🧪 Quick smoke tests
+      run: |
+        python -m pytest tests/test_simple.py -v
+      env:
+        BOT_TOKEN: test_token
+        ADMIN_CHAT_ID: 123456789
+      continue-on-error: false
+    
+    - name: 🔍 Check deploy readiness
+      run: |
+        python check_deploy_ready.py
+    
+    - name: 🚂 Deploy to Railway
+      run: |
+        echo "✅ Pre-deploy checks passed"
+        echo "🚂 Railway will auto-deploy from GitHub"
+        echo "📊 Monitor deployment at: https://railway.app"
+    
+    - name: 📢 Deployment notification
+      run: |
+        echo "::notice title=Deploy Status::Готов к деплою на Railway"
+        echo "✅ Все проверки пройдены"
+        echo "🚀 Railway автоматически задеплоит изменения"
+

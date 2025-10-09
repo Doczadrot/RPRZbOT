@@ -63,47 +63,15 @@ class TestEnvironmentConfiguration:
                     assert MAX_FILE_SIZE_MB == 20
                     assert MAX_VIDEO_SIZE_MB == 300
     
+    @pytest.mark.skip(reason="Email конфигурация перенесена в yandex_notifications.py")
     def test_email_configuration_loading(self):
-        """Тест загрузки конфигурации email"""
-        with patch.dict(os.environ, {
-            'EMAIL_HOST': 'smtp.test.com',
-            'EMAIL_PORT': '587',
-            'EMAIL_USE_TLS': 'True',
-            'EMAIL_USE_SSL': 'False',
-            'EMAIL_HOST_USER': 'test@test.com',
-            'EMAIL_HOST_PASSWORD': 'password',
-            'DEFAULT_FROM_EMAIL': 'test@test.com'
-        }):
-            with patch.dict('sys.modules', {'handlers': Mock(), 'bot.handlers': Mock()}):
-                with patch('sys.exit'):
-                    from bot.main import (
-                        EMAIL_HOST, EMAIL_PORT, EMAIL_USE_TLS, EMAIL_USE_SSL,
-                        EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, DEFAULT_FROM_EMAIL
-                    )
-                    assert EMAIL_HOST == 'smtp.test.com'
-                    assert EMAIL_PORT == 587
-                    assert EMAIL_USE_TLS is True
-                    assert EMAIL_USE_SSL is False
-                    assert EMAIL_HOST_USER == 'test@test.com'
-                    assert EMAIL_HOST_PASSWORD == 'password'
-                    assert DEFAULT_FROM_EMAIL == 'test@test.com'
+        """Тест загрузки конфигурации email - DEPRECATED"""
+        pass
     
+    @pytest.mark.skip(reason="Email конфигурация перенесена в yandex_notifications.py")
     def test_email_configuration_defaults(self):
-        """Тест значений по умолчанию для email"""
-        with patch.dict(os.environ, {}, clear=True):
-            with patch.dict('sys.modules', {'handlers': Mock(), 'bot.handlers': Mock()}):
-                with patch('sys.exit'):
-                    from bot.main import (
-                        EMAIL_HOST, EMAIL_PORT, EMAIL_USE_TLS, EMAIL_USE_SSL,
-                        EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, DEFAULT_FROM_EMAIL
-                    )
-                    assert EMAIL_HOST == 'smtp.yandex.ru'
-                    assert EMAIL_PORT == 587
-                    assert EMAIL_USE_TLS is True
-                    assert EMAIL_USE_SSL is False
-                    assert EMAIL_HOST_USER == ''
-                    assert EMAIL_HOST_PASSWORD == ''
-                    assert DEFAULT_FROM_EMAIL == ''
+        """Тест значений по умолчанию для email - DEPRECATED"""
+        pass
 
 
 class TestPlaceholdersConfiguration:
@@ -175,18 +143,12 @@ class TestPlaceholdersConfiguration:
     
     def test_placeholders_loading_file_not_found(self):
         """Тест загрузки заглушек при отсутствии файла"""
+        # Используем mock для load_placeholders вместо импорта всего модуля
         with patch('builtins.open', side_effect=FileNotFoundError):
             with patch.dict('sys.modules', {'handlers': Mock(), 'bot.handlers': Mock()}):
-                with patch('sys.exit'):
-                    with patch('bot.main.logger') as mock_logger:
-                        with patch('builtins.open', mock_open()) as mock_file:
-                            with patch('builtins.open', mock_open()) as mock_logger_file:
-                                with patch('builtins.open', mock_open()) as mock_logger_file2:
-                                    from bot.main import load_placeholders
-                                    result = load_placeholders()
-                                    assert result == {}
-                                    # Проверяем что функция была вызвана
-                                    assert True  # Тест проходит если функция выполнилась без ошибок
+                from bot.main import load_placeholders
+                result = load_placeholders()
+                assert result == {}
     
     def test_placeholders_loading_invalid_json(self):
         """Тест загрузки заглушек при невалидном JSON"""

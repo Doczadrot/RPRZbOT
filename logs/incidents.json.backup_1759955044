@@ -1,0 +1,64 @@
+﻿[
+  {
+    "timestamp": "2025-10-08T23:23:56.491510",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test incident",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 1,
+      "media": [
+        {
+          "type": "photo"
+        }
+      ],
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-08T23:23:56.744092",
+    "user_id": 12345,
+    "incident": {
+      "description": "Test",
+      "location": null,
+      "location_text": "Test location",
+      "media_count": 0,
+      "media": [],
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-08T23:23:57.024903",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании",
+      "location": {
+        "latitude": 55.7558,
+        "longitude": 37.6176
+      },
+      "location_text": null,
+      "media_count": 1,
+      "media": [
+        {
+          "type": "photo",
+          "file_id": "photo123"
+        }
+      ],
+      "user_id": 12345,
+      "username": "test_user"
+    }
+  },
+  {
+    "timestamp": "2025-10-08T23:23:57.533556",
+    "user_id": 12345,
+    "incident": {
+      "description": "Пожар в здании А",
+      "location": null,
+      "location_text": "Здание А, 1 этаж",
+      "media_count": 1,
+      "media": [
+        {
+          "type": "photo",
+          "file_id": 
