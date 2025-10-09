@@ -728,8 +728,7 @@ def handle_text(message):
         if isinstance(result, tuple):
             new_state, response = result
             logger.bind(user_id=user_id).info(
-                f"Переход состояния: {
-                    user_states[chat_id]} -> {new_state}"
+                f"Переход состояния: {user_states[chat_id]} -> {new_state}"
             )
             user_states[chat_id] = new_state
             if new_state == "main_menu":
@@ -1241,7 +1240,7 @@ if __name__ == "__main__":
         )
         logger.error("❌ BOT_TOKEN не настроен! Создайте файл .env с токеном бота")
         logger.info("📝 Пример содержимого .env:")
-        logger.info("BOT_TOKEN=ваш_токен_от_botfather")
+        logger.info("BOT_TOKEN=your_token_from_botfather")
         logger.info("ADMIN_CHAT_ID=ваш_chat_id")
         sys.exit(1)
 
