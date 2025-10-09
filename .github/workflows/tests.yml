@@ -48,11 +48,16 @@ jobs:
     - name: 📊 Run tests with coverage
       run: |
         pip install pytest-cov
-        python -m pytest tests/ --cov=bot --cov-report=term --cov-report=html
+        python -m pytest tests/ --cov=bot --cov-report=term --cov-report=html --cov-report=xml
       env:
         BOT_TOKEN: test_token_1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
         ADMIN_CHAT_ID: 123456789
         LOG_LEVEL: ERROR
+    
+    - name: 📈 Check coverage threshold (70%)
+      run: |
+        python scripts/check_coverage.py
+      continue-on-error: false
     
     - name: 📤 Upload coverage reports
       uses: actions/upload-artifact@v4
@@ -135,10 +140,34 @@ jobs:
         safety check --json
       continue-on-error: true
   
+  documentation:
+    name: 📖 Documentation Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v3
+    
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: 🔍 Check TODO/FIXME in code
+      run: |
+        python scripts/check_todos.py
+      continue-on-error: true
+    
+    - name: 📝 Check markdown files
+      run: |
+        # Установка markdownlint-cli2 через npx
+        npx --yes markdownlint-cli2 "**/*.md" "#node_modules" "#htmlcov" || echo "⚠️ Markdown issues found"
+      continue-on-error: true
+  
   deploy-ready:
     name: 🚀 Deploy Readiness Check
     runs-on: ubuntu-latest
-    needs: [test, code-quality, security]
+    needs: [test, code-quality, security, documentation]
     
     steps:
     - name: 📥 Checkout code
