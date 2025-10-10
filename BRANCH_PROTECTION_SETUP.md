@@ -387,3 +387,4 @@ gh api repos/:owner/:repo/branches/main
 **✅ Готово! Ваша main ветка теперь защищена!**
 
 *Создано для проекта RPRZ Safety Bot | Октябрь 2025*
+
