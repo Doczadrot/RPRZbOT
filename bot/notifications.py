@@ -6,6 +6,7 @@ import smtplib
 import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import resend
 from typing import Dict, Any, Tuple, Optional
 
 logger = logging.getLogger(__name__)
@@ -80,77 +81,47 @@ def send_telegram_notification(incident_data: Dict[str, Any]) -> bool:
         return False
 
 def send_email_notification(incident_data: Dict[str, Any]) -> bool:
-    """Отправляет email уведомление"""
+    """Отправляет email уведомление через Resend API"""
     try:
-        # Получаем настройки SMTP (проверяем все возможные переменные)
-        smtp_server = (os.getenv('YANDEX_SMTP_HOST') or 
-                      os.getenv('SMTP_SERVER') or 
-                      os.getenv('SMTP_HOST'))
-        smtp_port = int(os.getenv('YANDEX_SMTP_PORT') or 
-                       os.getenv('SMTP_PORT') or 
-                       os.getenv('PORT', 587))
-        smtp_username = (os.getenv('YANDEX_SMTP_USER') or 
-                        os.getenv('SMTP_USERNAME') or 
-                        os.getenv('SMTP_USER'))
-        smtp_password = (os.getenv('YANDEX_SMTP_PASSWORD') or 
-                        os.getenv('SMTP_PASSWORD') or 
-                        os.getenv('SMTP_PASS'))
-        email_to = (os.getenv('ADMIN_EMAIL') or 
-                   os.getenv('INCIDENT_NOTIFICATION_EMAILS') or 
-                   os.getenv('NOTIFICATION_EMAIL'))
+        # Получаем настройки Resend
+        resend_api_key = os.getenv('RESEND_API_KEY')
+        email_from = os.getenv('RESEND_FROM_EMAIL') or os.getenv('ADMIN_EMAIL')
+        email_to = os.getenv('ADMIN_EMAIL') or os.getenv('INCIDENT_NOTIFICATION_EMAILS')
         
-        # Отладочная информация о всех переменных
-        logger.info("🔍 Отладка SMTP переменных:")
-        logger.info(f"YANDEX_SMTP_HOST: {os.getenv('YANDEX_SMTP_HOST', 'НЕТ')}")
-        logger.info(f"YANDEX_SMTP_PORT: {os.getenv('YANDEX_SMTP_PORT', 'НЕТ')}")
-        logger.info(f"YANDEX_SMTP_USER: {os.getenv('YANDEX_SMTP_USER', 'НЕТ')}")
-        logger.info(f"YANDEX_SMTP_PASSWORD: {'ЕСТЬ' if os.getenv('YANDEX_SMTP_PASSWORD') else 'НЕТ'}")
-        logger.info(f"ADMIN_EMAIL: {os.getenv('ADMIN_EMAIL', 'НЕТ')}")
-        logger.info(f"INCIDENT_NOTIFICATION_EMAILS: {os.getenv('INCIDENT_NOTIFICATION_EMAILS', 'НЕТ')}")
-        logger.info(f"🔍 SMTP настройки: server={smtp_server}, port={smtp_port}, user={smtp_username}, to={email_to}")
+        logger.info("🔍 Отладка Resend переменных:")
+        logger.info(f"RESEND_API_KEY: {'ЕСТЬ' if resend_api_key else 'НЕТ'}")
+        logger.info(f"RESEND_FROM_EMAIL: {email_from or 'НЕТ'}")
+        logger.info(f"ADMIN_EMAIL: {email_to or 'НЕТ'}")
         
-        # Проверяем все переменные окружения
-        all_env_vars = {k: v for k, v in os.environ.items() if 'SMTP' in k or 'EMAIL' in k or 'YANDEX' in k}
-        logger.info(f"🔍 Все SMTP/EMAIL переменные: {all_env_vars}")
-        
-        if not all([smtp_server, smtp_username, smtp_password, email_to]):
+        if not all([resend_api_key, email_from, email_to]):
             missing = []
-            if not smtp_server: missing.append("YANDEX_SMTP_HOST или SMTP_SERVER")
-            if not smtp_port: missing.append("YANDEX_SMTP_PORT или SMTP_PORT") 
-            if not smtp_username: missing.append("YANDEX_SMTP_USER или SMTP_USERNAME")
-            if not smtp_password: missing.append("YANDEX_SMTP_PASSWORD или SMTP_PASSWORD")
-            if not email_to: missing.append("ADMIN_EMAIL или INCIDENT_NOTIFICATION_EMAILS")
-            logger.warning(f"⚠️ SMTP настройки не полные. Отсутствуют: {', '.join(missing)}")
+            if not resend_api_key: missing.append("RESEND_API_KEY")
+            if not email_from: missing.append("RESEND_FROM_EMAIL или ADMIN_EMAIL")
+            if not email_to: missing.append("ADMIN_EMAIL")
+            logger.warning(f"⚠️ Resend настройки не полные. Отсутствуют: {', '.join(missing)}")
             return False
-            
-        # Создаем сообщение
-        msg = MIMEMultipart()
-        msg['From'] = smtp_username
-        msg['To'] = email_to
-        msg['Subject'] = f"🚨 Инцидент в RPRZ боте - {incident_data.get('type', 'Неизвестно')}"
         
-        # Формируем текст письма
+        # Настраиваем Resend
+        resend.api_key = resend_api_key
+        
+        # Формируем письмо
+        subject = f"🚨 Инцидент в RPRZ боте - {incident_data.get('type', 'Сообщение об опасности')}"
         body = format_incident_email(incident_data)
-        msg.attach(MIMEText(body, 'plain', 'utf-8'))
         
-        # Отправляем письмо
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_username, smtp_password)
-            server.send_message(msg)
-            
-        logger.info("✅ Email уведомление отправлено")
+        # Отправляем через Resend API
+        params = {
+            "from": email_from,
+            "to": [email_to],
+            "subject": subject,
+            "text": body,
+        }
+        
+        email = resend.Emails.send(params)
+        logger.info(f"✅ Email уведомление отправлено через Resend: {email}")
         return True
         
-    except (smtplib.SMTPException, OSError) as e:
-        if "Network is unreachable" in str(e) or "Errno 101" in str(e):
-            logger.warning("⚠️ Railway блокирует SMTP соединения. Email недоступен.")
-            return False
-        else:
-            logger.error(f"Ошибка отправки email уведомления: {e}")
-            return False
     except Exception as e:
-        logger.error(f"Ошибка отправки email уведомления: {e}")
+        logger.error(f"Ошибка отправки email через Resend: {e}")
         return False
 
 def format_incident_message(incident_data: Dict[str, Any]) -> str:
