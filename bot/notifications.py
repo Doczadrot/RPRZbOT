@@ -89,7 +89,13 @@ def send_email_notification(incident_data: Dict[str, Any]) -> bool:
         email_to = os.getenv('ADMIN_EMAIL')
         
         if not all([smtp_server, smtp_username, smtp_password, email_to]):
-            logger.warning("⚠️ SMTP настройки не полные")
+            missing = []
+            if not smtp_server: missing.append("SMTP_SERVER")
+            if not smtp_port: missing.append("SMTP_PORT") 
+            if not smtp_username: missing.append("SMTP_USERNAME")
+            if not smtp_password: missing.append("SMTP_PASSWORD")
+            if not email_to: missing.append("ADMIN_EMAIL")
+            logger.warning(f"⚠️ SMTP настройки не полные. Отсутствуют: {', '.join(missing)}")
             return False
             
         # Создаем сообщение
