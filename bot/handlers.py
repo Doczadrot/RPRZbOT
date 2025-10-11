@@ -423,6 +423,8 @@ def handle_danger_report_media(message, user_data, max_file_size_mb, max_video_s
 
 def finish_danger_report(message, user_data, placeholders):
     """Завершение процесса сообщения об опасности"""
+    from datetime import datetime
+    
     chat_id = message.chat.id
     username = message.from_user.username or "Unknown"
 
@@ -446,7 +448,6 @@ def finish_danger_report(message, user_data, placeholders):
         # Отправляем в Telegram админу
         admin_chat_id = os.getenv("ADMIN_CHAT_ID")
         if admin_chat_id:
-            from datetime import datetime
 
             current_time = datetime.now()
 

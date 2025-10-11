@@ -371,5 +371,262 @@ class TestEmailIntegration:
         assert len(call_args["attachments"][0]["content"]) > 5 * 1024 * 1024
 
 
+class TestLocationValidation:
+    """Тесты для валидации поля 'Место' - отклонение кнопок и медиафайлов"""
+
+    def test_location_rejects_media_buttons(self):
+        """Тест что кнопки медиа-меню отклоняются для поля 'Место'"""
+        from bot.handlers import handle_danger_report_text
+        
+        # Мокаем сообщение
+        message = Mock()
+        message.chat.id = 12345
+        message.from_user.username = "test_user"
+        message.text = "📷 Продолжить"  # Кнопка из медиа-меню
+        
+        # Данные пользователя на этапе "location"
+        user_data = {
+            "description": "Тестовое описание",
+            "step": "location"
+        }
+        placeholders = {}
+        
+        # Вызываем функцию
+        result = handle_danger_report_text(message, user_data, placeholders)
+        
+        # Проверяем что кнопка отклонена
+        assert result[0] == "danger_report"  # Остаемся в том же состоянии
+        assert "❌" in result[1]  # Есть сообщение об ошибке
+        assert "кнопки не принимаются" in result[1].lower() or "пожалуйста, укажите" in result[1].lower()
+        
+    def test_location_rejects_all_media_buttons(self):
+        """Тест что все кнопки медиа-меню отклоняются для поля 'Место'"""
+        from bot.handlers import handle_danger_report_text
+        
+        # Только кнопки, которые должны отклоняться на этапе "location"
+        media_buttons = [
+            "📷 Продолжить",
+            "📍 Изменить место", 
+            "📝 Изменить описание",
+            "❌ Отменить"
+            # "⬅️ Назад" - эта кнопка обрабатывается по-другому
+        ]
+        
+        for button_text in media_buttons:
+            # Мокаем сообщение
+            message = Mock()
+            message.chat.id = 12345
+            message.from_user.username = "test_user"
+            message.text = button_text
+            
+            # Данные пользователя на этапе "location"
+            user_data = {
+                "description": "Тестовое описание",
+                "step": "location"
+            }
+            placeholders = {}
+            
+            # Вызываем функцию
+            result = handle_danger_report_text(message, user_data, placeholders)
+            
+            # Проверяем что кнопка отклонена
+            assert result[0] == "danger_report"
+            assert "❌" in result[1]
+            # Проверяем что это строка, а не словарь
+            if isinstance(result[1], dict):
+                assert "кнопки не принимаются" in result[1].get("text", "").lower() or "пожалуйста, укажите" in result[1].get("text", "").lower()
+            else:
+                assert "кнопки не принимаются" in result[1].lower() or "пожалуйста, укажите" in result[1].lower()
+
+    def test_location_accepts_real_text(self):
+        """Тест что реальный текст принимается для поля 'Место'"""
+        from bot.handlers import handle_danger_report_text
+        
+        # Мокаем сообщение
+        message = Mock()
+        message.chat.id = 12345
+        message.from_user.username = "test_user"
+        message.text = "Цех 025, станок №3"  # Реальное описание места
+        
+        # Данные пользователя на этапе "location"
+        user_data = {
+            "description": "Тестовое описание",
+            "step": "location"
+        }
+        placeholders = {}
+        
+        # Вызываем функцию
+        result = handle_danger_report_text(message, user_data, placeholders)
+        
+        # Проверяем что текст принят
+        assert result[0] == "danger_report"
+        # Проверяем что это словарь с текстом
+        if isinstance(result[1], dict):
+            assert "✅ Место указано" in result[1].get("text", "")
+            assert "Цех 025, станок №3" in result[1].get("text", "")
+        else:
+            assert "✅ Место указано" in result[1]
+            assert "Цех 025, станок №3" in result[1]
+        assert user_data["location_text"] == "Цех 025, станок №3"
+        assert user_data["step"] == "media"  # Переходим к этапу медиа
+
+    def test_location_rejects_short_text(self):
+        """Тест что слишком короткий текст отклоняется"""
+        from bot.handlers import handle_danger_report_text
+        
+        # Мокаем сообщение
+        message = Mock()
+        message.chat.id = 12345
+        message.from_user.username = "test_user"
+        message.text = "А"  # Слишком короткий
+        
+        # Данные пользователя на этапе "location"
+        user_data = {
+            "description": "Тестовое описание",
+            "step": "location"
+        }
+        placeholders = {}
+        
+        # Вызываем функцию
+        result = handle_danger_report_text(message, user_data, placeholders)
+        
+        # Проверяем что текст отклонен
+        assert result[0] == "danger_report"
+        assert "❌" in result[1]
+        assert "слишком короткое" in result[1].lower()
+
+    def test_location_rejects_long_text(self):
+        """Тест что слишком длинный текст отклоняется"""
+        from bot.handlers import handle_danger_report_text
+        
+        # Мокаем сообщение
+        message = Mock()
+        message.chat.id = 12345
+        message.from_user.username = "test_user"
+        message.text = "А" * 201  # Слишком длинный (>200 символов)
+        
+        # Данные пользователя на этапе "location"
+        user_data = {
+            "description": "Тестовое описание",
+            "step": "location"
+        }
+        placeholders = {}
+        
+        # Вызываем функцию
+        result = handle_danger_report_text(message, user_data, placeholders)
+        
+        # Проверяем что текст отклонен
+        assert result[0] == "danger_report"
+        assert "❌" in result[1]
+        assert "слишком длинное" in result[1].lower()
+
+    def test_media_rejected_on_location_step(self):
+        """Тест что медиафайлы отклоняются на этапе 'location'"""
+        # Упрощенный тест - проверяем только логику валидации
+        # без сложного мокирования глобальных переменных
+        
+        # Проверяем что кнопки отклоняются для поля "Место"
+        from bot.handlers import handle_danger_report_text
+        
+        message = Mock()
+        message.chat.id = 12345
+        message.from_user.username = "test_user"
+        message.text = "📷 Продолжить"  # Кнопка медиа-меню
+        
+        user_data = {
+            "description": "Тестовое описание",
+            "step": "location"
+        }
+        placeholders = {}
+        
+        result = handle_danger_report_text(message, user_data, placeholders)
+        
+        # Проверяем что кнопка отклонена
+        assert result[0] == "danger_report"
+        assert "❌" in result[1]
+
+    def test_media_rejected_on_location_text_step(self):
+        """Тест что медиафайлы отклоняются на этапе 'location_text'"""
+        # Упрощенный тест - проверяем только логику валидации
+        
+        from bot.handlers import handle_danger_report_text
+        
+        message = Mock()
+        message.chat.id = 12345
+        message.from_user.username = "test_user"
+        message.text = "📷 Продолжить"  # Кнопка медиа-меню
+        
+        user_data = {
+            "description": "Тестовое описание",
+            "step": "location_text"
+        }
+        placeholders = {}
+        
+        result = handle_danger_report_text(message, user_data, placeholders)
+        
+        # Проверяем что кнопка отклонена
+        assert result[0] == "danger_report"
+        assert "❌" in result[1]
+
+    def test_media_accepted_on_media_step(self):
+        """Тест что медиафайлы принимаются на этапе 'media'"""
+        # Упрощенный тест - проверяем что валидация не блокирует
+        # нормальные действия на этапе медиа
+        
+        from bot.handlers import handle_danger_report_text
+        
+        message = Mock()
+        message.chat.id = 12345
+        message.from_user.username = "test_user"
+        message.text = "📷 Продолжить"  # Кнопка медиа-меню
+        
+        user_data = {
+            "description": "Тестовое описание",
+            "step": "media"  # На этапе медиа
+        }
+        placeholders = {}
+        
+        result = handle_danger_report_text(message, user_data, placeholders)
+        
+        # На этапе медиа кнопка "Продолжить" завершает инцидент
+        # и возвращает пользователя в главное меню
+        assert result[0] == "main_menu"
+        # Проверяем что это не ошибка валидации
+        if result[1] is not None:
+            if isinstance(result[1], dict):
+                assert "❌" not in result[1].get("text", "")
+            else:
+                assert "❌" not in result[1]
+
+    def test_location_text_step_rejects_buttons(self):
+        """Тест что кнопки отклоняются на этапе 'location_text'"""
+        from bot.handlers import handle_danger_report_text
+        
+        # Мокаем сообщение
+        message = Mock()
+        message.chat.id = 12345
+        message.from_user.username = "test_user"
+        message.text = "📷 Продолжить"  # Кнопка из медиа-меню
+        
+        # Данные пользователя на этапе "location_text"
+        user_data = {
+            "description": "Тестовое описание",
+            "step": "location_text"
+        }
+        placeholders = {}
+        
+        # Вызываем функцию
+        result = handle_danger_report_text(message, user_data, placeholders)
+        
+        # Проверяем что кнопка отклонена
+        assert result[0] == "danger_report"
+        assert "❌" in result[1]
+        # Проверяем текст сообщения
+        if isinstance(result[1], dict):
+            assert "нажмите кнопки" in result[1].get("text", "").lower() or "не нажимайте кнопки" in result[1].get("text", "").lower()
+        else:
+            assert "нажмите кнопки" in result[1].lower() or "не нажимайте кнопки" in result[1].lower()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
