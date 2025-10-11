@@ -1126,13 +1126,38 @@ def handle_media(message):
     )
 
     if user_states.get(chat_id) == "danger_report":
-        logger.bind(user_id=user_id).info(
-            "Обработка медиафайла для сообщения об опасности"
-        )
-        result = handle_danger_report_media(
-            message, user_data[chat_id], MAX_FILE_SIZE_MB, MAX_VIDEO_SIZE_MB
-        )
-        bot.send_message(chat_id, result, reply_markup=get_media_keyboard())
+        # Проверяем этап - медиафайлы принимаются только на этапе "media"
+        current_step = user_data.get(chat_id, {}).get("step", "")
+        
+        if current_step in ["location", "location_text"]:
+            # Отклоняем медиафайлы на этапе указания места
+            bot.send_message(
+                chat_id, 
+                "❌ Пожалуйста, укажите местоположение инцидента текстом или отправьте геолокацию. Файлы не принимаются для поля 'Место'."
+            )
+            logger.bind(user_id=user_id).warning(
+                f"Отклонен медиафайл на этапе указания места: {current_step}"
+            )
+            return
+            
+        elif current_step == "media":
+            # Обрабатываем медиафайлы только на этапе "media"
+            logger.bind(user_id=user_id).info(
+                "Обработка медиафайла для сообщения об опасности"
+            )
+            result = handle_danger_report_media(
+                message, user_data[chat_id], MAX_FILE_SIZE_MB, MAX_VIDEO_SIZE_MB
+            )
+            bot.send_message(chat_id, result, reply_markup=get_media_keyboard())
+        else:
+            # Медиафайлы не принимаются на других этапах
+            bot.send_message(
+                chat_id, 
+                "❌ Медиафайлы можно прикреплять только на этапе добавления фото/видео к инциденту."
+            )
+            logger.bind(user_id=user_id).warning(
+                f"Отклонен медиафайл на этапе: {current_step}"
+            )
     else:
         logger.bind(user_id=user_id).warning(
             f"Медиафайл получен в неподходящем состоянии: {user_states.get(chat_id)}"
