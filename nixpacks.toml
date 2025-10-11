@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["python310", "python310Packages.pip"]
+nixPkgs = ["python310"]
 
 [phases.install]
-cmds = ["python -m pip install --upgrade pip", "python -m pip install -r requirements.txt"]
+cmds = ["source /opt/venv/bin/activate && pip install --upgrade pip", "source /opt/venv/bin/activate && pip install -r requirements.txt"]
 
 [start]
-cmd = "python bot/main.py"
+cmd = "source /opt/venv/bin/activate && python bot/main.py"
