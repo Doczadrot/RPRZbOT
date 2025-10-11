@@ -125,15 +125,25 @@ def send_email_notification(incident_data: Dict[str, Any]) -> bool:
 
 def format_incident_message(incident_data: Dict[str, Any]) -> str:
     """Форматирует сообщение об инциденте для Telegram"""
+    from datetime import datetime
+    
     message = f"🚨 <b>Новый инцидент в RPRZ боте</b>\n\n"
-    message += f"📋 <b>Тип:</b> {incident_data.get('type', 'Неизвестно')}\n"
-    message += f"👤 <b>Пользователь:</b> {incident_data.get('user_name', 'Неизвестно')}\n"
+    message += f"📋 <b>Тип:</b> {incident_data.get('type', 'Сообщение об опасности')}\n"
+    message += f"👤 <b>Пользователь:</b> {incident_data.get('username', 'Неизвестно')}\n"
     message += f"🆔 <b>ID:</b> {incident_data.get('user_id', 'Неизвестно')}\n"
-    message += f"⏰ <b>Время:</b> {incident_data.get('timestamp', 'Неизвестно')}\n"
+    message += f"⏰ <b>Время:</b> {datetime.now().strftime('%d.%m.%Y %H:%M:%S')} МСК\n"
     message += f"📝 <b>Описание:</b> {incident_data.get('description', 'Не указано')}\n"
     
     if incident_data.get('location'):
-        message += f"📍 <b>Местоположение:</b> {incident_data['location']}\n"
+        lat = incident_data['location'].get('latitude', '')
+        lon = incident_data['location'].get('longitude', '')
+        message += f"📍 <b>Координаты:</b> {lat}, {lon}\n"
+    elif incident_data.get('location_text'):
+        message += f"📍 <b>Место:</b> {incident_data['location_text']}\n"
+    else:
+        message += f"📍 <b>Место:</b> Не указано\n"
+        
+    message += f"📷 <b>Медиафайлов:</b> {incident_data.get('media_count', 0)}\n"
         
     if incident_data.get('severity'):
         message += f"⚠️ <b>Критичность:</b> {incident_data['severity']}\n"
@@ -142,15 +152,25 @@ def format_incident_message(incident_data: Dict[str, Any]) -> str:
 
 def format_incident_email(incident_data: Dict[str, Any]) -> str:
     """Форматирует текст письма об инциденте"""
+    from datetime import datetime
+    
     body = f"Новый инцидент в RPRZ боте\n\n"
-    body += f"Тип: {incident_data.get('type', 'Неизвестно')}\n"
-    body += f"Пользователь: {incident_data.get('user_name', 'Неизвестно')}\n"
+    body += f"Тип: {incident_data.get('type', 'Сообщение об опасности')}\n"
+    body += f"Пользователь: {incident_data.get('username', 'Неизвестно')}\n"
     body += f"ID: {incident_data.get('user_id', 'Неизвестно')}\n"
-    body += f"Время: {incident_data.get('timestamp', 'Неизвестно')}\n"
+    body += f"Время: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')} МСК\n"
     body += f"Описание: {incident_data.get('description', 'Не указано')}\n"
     
     if incident_data.get('location'):
-        body += f"Местоположение: {incident_data['location']}\n"
+        lat = incident_data['location'].get('latitude', '')
+        lon = incident_data['location'].get('longitude', '')
+        body += f"Координаты: {lat}, {lon}\n"
+    elif incident_data.get('location_text'):
+        body += f"Место: {incident_data['location_text']}\n"
+    else:
+        body += f"Место: Не указано\n"
+        
+    body += f"Медиафайлов: {incident_data.get('media_count', 0)}\n"
         
     if incident_data.get('severity'):
         body += f"Критичность: {incident_data['severity']}\n"

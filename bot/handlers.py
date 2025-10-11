@@ -371,8 +371,11 @@ def finish_danger_report(message, user_data, placeholders):
         # Отправляем в Telegram админу
         admin_chat_id = os.getenv("ADMIN_CHAT_ID")
         if admin_chat_id:
+            from datetime import datetime
+            current_time = datetime.now()
+            
             admin_text = "🚨 НОВЫЙ ИНЦИДЕНТ\n\n"
-            admin_text += f"👤 Пользователь: ID {chat_id}\n"
+            admin_text += f"👤 Пользователь: {username} (ID: {chat_id})\n"
             admin_text += f"📝 Описание: {incident_data['description']}\n"
             if incident_data["location"]:
                 lat = incident_data['location']['latitude']
@@ -383,7 +386,7 @@ def finish_danger_report(message, user_data, placeholders):
             else:
                 admin_text += "📍 Место: Не указано\n"
             admin_text += f"📷 Медиафайлов: {incident_data['media_count']}\n"
-            admin_text += f"🕐 Время: {datetime.now().strftime('%d.%m.%Y %H:%M')}"
+            admin_text += f"🕐 Время: {current_time.strftime('%d.%m.%Y %H:%M:%S')} МСК"
 
             logger.info(f"Отправка админу в Telegram: {admin_text}")
 
@@ -392,6 +395,34 @@ def finish_danger_report(message, user_data, placeholders):
                 try:
                     bot_instance.send_message(admin_chat_id, admin_text)
                     logger.info("✅ Уведомление админу в Telegram отправлено")
+                    
+                    # Отправляем медиафайлы админу
+                    if incident_data['media']:
+                        logger.info(f"📷 Отправка {len(incident_data['media'])} медиафайлов админу")
+                        for i, media_item in enumerate(incident_data['media'], 1):
+                            try:
+                                if media_item['type'] == 'photo':
+                                    bot_instance.send_photo(
+                                        admin_chat_id, 
+                                        media_item['file_id'],
+                                        caption=f"📷 Медиафайл {i}/{len(incident_data['media'])}"
+                                    )
+                                elif media_item['type'] == 'video':
+                                    bot_instance.send_video(
+                                        admin_chat_id,
+                                        media_item['file_id'],
+                                        caption=f"🎥 Медиафайл {i}/{len(incident_data['media'])}"
+                                    )
+                                elif media_item['type'] == 'document':
+                                    bot_instance.send_document(
+                                        admin_chat_id,
+                                        media_item['file_id'],
+                                        caption=f"📄 Медиафайл {i}/{len(incident_data['media'])}"
+                                    )
+                                logger.info(f"✅ Медиафайл {i} отправлен админу")
+                            except Exception as media_error:
+                                logger.error(f"❌ Ошибка отправки медиафайла {i}: {media_error}")
+                                
                 except Exception as bot_error:
                     logger.error(f"❌ Ошибка отправки админу в Telegram: {bot_error}")
             else:
