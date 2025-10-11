@@ -177,6 +177,8 @@ def _format_incident_html(
     incident_data: Dict[str, Any], media_files: list = None
 ) -> str:
     """Форматирует HTML для письма об инциденте"""
+    from datetime import datetime
+    
     html_content = f"""
     <html>
     <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5;">
@@ -197,7 +199,7 @@ def _format_incident_html(
                 </tr>
                 <tr>
                     <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>🕐 Время:</strong></td>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee;">{incident_data.get('timestamp', 'Не указано')}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee;">{datetime.now().strftime('%d.%m.%Y %H:%M:%S')} МСК</td>
                 </tr>
             </table>
     """
