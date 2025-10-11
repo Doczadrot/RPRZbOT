@@ -659,3 +659,52 @@ def show_user_suggestions(message):
     except Exception as e:
         logger.error(f"Ошибка показа предложений пользователя: {e}")
         return {"text": "❌ Ошибка загрузки ваших предложений", "reply_markup": get_back_keyboard()}
+
+
+def test_email_notifications(message):
+    """Тестирует отправку email уведомлений (только для админов)"""
+    try:
+        from bot.notifications import send_incident_notification
+        from datetime import datetime
+        
+        # Тестовые данные инцидента
+        test_incident = {
+            'type': 'ТЕСТ EMAIL',
+            'user_name': message.from_user.first_name or 'Test User',
+            'user_id': message.from_user.id,
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'description': 'Тестовое уведомление для проверки настройки email в Railway',
+            'severity': 'НИЗКАЯ'
+        }
+        
+        logger.info("🧪 Тестирование email уведомлений...")
+        
+        # Отправляем тестовое уведомление
+        success, result_message = send_incident_notification(test_incident)
+        
+        if success:
+            bot_instance.send_message(
+                message.chat.id,
+                f"✅ Тестовое email уведомление отправлено!\n\n"
+                f"📧 Результат: {result_message}\n"
+                f"📬 Проверьте почту: {os.getenv('ADMIN_EMAIL', 'не настроено')}",
+                reply_markup=get_back_keyboard()
+            )
+            logger.info(f"✅ Тестовое email уведомление успешно отправлено: {result_message}")
+        else:
+            bot_instance.send_message(
+                message.chat.id,
+                f"❌ Ошибка отправки email уведомления!\n\n"
+                f"🔍 Проблема: {result_message}\n\n"
+                f"📝 Проверьте настройки SMTP в Railway Variables",
+                reply_markup=get_back_keyboard()
+            )
+            logger.warning(f"❌ Ошибка тестового email уведомления: {result_message}")
+            
+    except Exception as e:
+        logger.error(f"Ошибка тестирования email: {e}")
+        bot_instance.send_message(
+            message.chat.id,
+            f"❌ Ошибка тестирования email уведомлений: {str(e)}",
+            reply_markup=get_back_keyboard()
+        )
