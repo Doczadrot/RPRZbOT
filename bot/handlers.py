@@ -437,11 +437,15 @@ def finish_danger_report(message, user_data, placeholders):
         # Отправляем через Яндекс уведомления
         logger.info(f"🔍 NOTIFICATIONS_AVAILABLE: {NOTIFICATIONS_AVAILABLE}")
         if NOTIFICATIONS_AVAILABLE:
-            notification_success, notification_message = send_incident_notification(incident_data)
-            if notification_success:
-                logger.info(f"✅ Яндекс уведомления отправлены: {notification_message}")
-            else:
-                logger.warning(f"⚠️ Ошибка Яндекс уведомлений: {notification_message}")
+            try:
+                logger.info("🔍 Вызов send_incident_notification...")
+                notification_success, notification_message = send_incident_notification(incident_data)
+                if notification_success:
+                    logger.info(f"✅ Яндекс уведомления отправлены: {notification_message}")
+                else:
+                    logger.warning(f"⚠️ Ошибка Яндекс уведомлений: {notification_message}")
+            except Exception as e:
+                logger.error(f"❌ Ошибка вызова send_incident_notification: {e}")
         else:
             logger.warning("⚠️ Сервис Яндекс уведомлений недоступен")
 
@@ -458,7 +462,8 @@ def finish_danger_report(message, user_data, placeholders):
         "✅ Инцидент зарегистрирован!\n\n"
         "📝 Описание: {}\n"
         "📍 Местоположение: {}\n"
-        "📷 Медиафайлов: {}\n\n"
+        "📷 Медиафайлов: {}\n"
+        "🕐 Время: {}\n\n"
         "🚨 Срочные контакты:\n"
         "📞 Служба безопасности: {}\n"
         "📞 Охрана труда: {}\n\n"
@@ -473,6 +478,7 @@ def finish_danger_report(message, user_data, placeholders):
             else (incident_data["location_text"] if incident_data["location_text"] else "Не указано")
         ),
         incident_data["media_count"],
+        datetime.now().strftime('%d.%m.%Y %H:%M:%S') + " МСК",
         placeholders.get("contacts", {}).get("security", "Не указан"),
         placeholders.get("contacts", {}).get("safety", "Не указан"),
     )
