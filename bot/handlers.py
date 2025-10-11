@@ -19,10 +19,12 @@ try:
     from bot.notifications import send_incident_notification
 
     NOTIFICATIONS_AVAILABLE = True
-    logger.info("✅ Модуль yandex_notifications успешно загружен")
+    logger.info("✅ Модуль notifications успешно загружен")
 except ImportError as e:
     NOTIFICATIONS_AVAILABLE = False
-    logger.warning(f"⚠️ Модуль yandex_notifications не найден: {e}")
+    logger.warning(f"⚠️ Модуль notifications не найден: {e}")
+    logger.warning(f"⚠️ Детали ошибки: {e}")
+    logger.warning(f"⚠️ Путь: {sys.path}")
 
 # Глобальная переменная для объекта bot (будет установлена из main.py)
 bot_instance = None

@@ -1462,8 +1462,8 @@ if __name__ == "__main__":
         from bot.notifications import set_bot_instance
         set_bot_instance(bot)
         logger.info("✅ Bot instance установлен для notifications")
-    except ImportError:
-        logger.warning("⚠️ Не удалось установить bot instance для notifications")
+    except ImportError as e:
+        logger.warning(f"⚠️ Не удалось установить bot instance для notifications: {e}")
 
     # Регистрируем обработчики
     bot.message_handler(
