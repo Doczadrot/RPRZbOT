@@ -16,7 +16,7 @@ from loguru import logger
 try:
     # Добавляем корневую папку в путь для импорта
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from yandex_notifications import send_incident_notification
+    from bot.notifications import send_incident_notification
 
     NOTIFICATIONS_AVAILABLE = True
     logger.info("✅ Модуль yandex_notifications успешно загружен")

@@ -1457,14 +1457,13 @@ if __name__ == "__main__":
     # Устанавливаем глобальный экземпляр бота для handlers
     set_bot_instance(bot)
 
-    # Устанавливаем глобальный экземпляр бота для yandex_notifications
+    # Устанавливаем глобальный экземпляр бота для notifications
     try:
-        from yandex_notifications import set_bot_instance as set_yandex_bot_instance
-
-        set_yandex_bot_instance(bot)
-        logger.info("✅ Bot instance установлен для yandex_notifications")
+        from bot.notifications import set_bot_instance
+        set_bot_instance(bot)
+        logger.info("✅ Bot instance установлен для notifications")
     except ImportError:
-        logger.warning("⚠️ Не удалось установить bot instance для yandex_notifications")
+        logger.warning("⚠️ Не удалось установить bot instance для notifications")
 
     # Регистрируем обработчики
     bot.message_handler(
