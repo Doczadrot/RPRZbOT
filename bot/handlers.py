@@ -483,6 +483,13 @@ def finish_danger_report(message, user_data, placeholders):
         placeholders.get("contacts", {}).get("safety", "Не указан"),
     )
 
+    # Отправляем сообщение пользователю
+    try:
+        bot_instance.send_message(chat_id, response_text, reply_markup=markup)
+        logger.info("✅ Пользователь уведомлен о регистрации инцидента")
+    except Exception as e:
+        logger.error(f"❌ Ошибка уведомления пользователя: {e}")
+    
     return "main_menu", {"text": response_text, "reply_markup": markup}
 
 

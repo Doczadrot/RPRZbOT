@@ -142,6 +142,13 @@ def send_email_notification(incident_data: Dict[str, Any]) -> bool:
         logger.info("✅ Email уведомление отправлено")
         return True
         
+    except (smtplib.SMTPException, OSError) as e:
+        if "Network is unreachable" in str(e) or "Errno 101" in str(e):
+            logger.warning("⚠️ Railway блокирует SMTP соединения. Email недоступен.")
+            return False
+        else:
+            logger.error(f"Ошибка отправки email уведомления: {e}")
+            return False
     except Exception as e:
         logger.error(f"Ошибка отправки email уведомления: {e}")
         return False
