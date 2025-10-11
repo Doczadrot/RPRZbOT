@@ -101,10 +101,16 @@ def send_email_notification(incident_data: Dict[str, Any]) -> bool:
         # Отладочная информация о всех переменных
         logger.info("🔍 Отладка SMTP переменных:")
         logger.info(f"YANDEX_SMTP_HOST: {os.getenv('YANDEX_SMTP_HOST', 'НЕТ')}")
+        logger.info(f"YANDEX_SMTP_PORT: {os.getenv('YANDEX_SMTP_PORT', 'НЕТ')}")
         logger.info(f"YANDEX_SMTP_USER: {os.getenv('YANDEX_SMTP_USER', 'НЕТ')}")
         logger.info(f"YANDEX_SMTP_PASSWORD: {'ЕСТЬ' if os.getenv('YANDEX_SMTP_PASSWORD') else 'НЕТ'}")
         logger.info(f"ADMIN_EMAIL: {os.getenv('ADMIN_EMAIL', 'НЕТ')}")
+        logger.info(f"INCIDENT_NOTIFICATION_EMAILS: {os.getenv('INCIDENT_NOTIFICATION_EMAILS', 'НЕТ')}")
         logger.info(f"🔍 SMTP настройки: server={smtp_server}, port={smtp_port}, user={smtp_username}, to={email_to}")
+        
+        # Проверяем все переменные окружения
+        all_env_vars = {k: v for k, v in os.environ.items() if 'SMTP' in k or 'EMAIL' in k or 'YANDEX' in k}
+        logger.info(f"🔍 Все SMTP/EMAIL переменные: {all_env_vars}")
         
         if not all([smtp_server, smtp_username, smtp_password, email_to]):
             missing = []
