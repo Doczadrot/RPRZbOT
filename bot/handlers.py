@@ -434,12 +434,30 @@ def finish_danger_report(message, user_data, placeholders):
             
         logger.info("🔍 Переход к email уведомлениям...")
 
+        # Скачиваем медиафайлы для email
+        downloaded_media = []
+        if incident_data.get('media') and bot_instance:
+            logger.info(f"📷 Скачивание {len(incident_data['media'])} медиафайлов для email...")
+            for media_item in incident_data['media']:
+                try:
+                    file_info = bot_instance.get_file(media_item['file_id'])
+                    downloaded_file = bot_instance.download_file(file_info.file_path)
+                    
+                    downloaded_media.append({
+                        'data': downloaded_file,
+                        'type': media_item['type'],
+                        'filename': f"{media_item['type']}_{media_item['file_id'][:8]}.jpg"
+                    })
+                    logger.info(f"✅ Медиафайл {media_item['type']} скачан для email")
+                except Exception as e:
+                    logger.error(f"❌ Ошибка скачивания медиафайла: {e}")
+
         # Отправляем через Яндекс уведомления
         logger.info(f"🔍 NOTIFICATIONS_AVAILABLE: {NOTIFICATIONS_AVAILABLE}")
         if NOTIFICATIONS_AVAILABLE:
             try:
                 logger.info("🔍 Вызов send_incident_notification...")
-                notification_success, notification_message = send_incident_notification(incident_data)
+                notification_success, notification_message = send_incident_notification(incident_data, downloaded_media)
                 if notification_success:
                     logger.info(f"✅ Яндекс уведомления отправлены: {notification_message}")
                 else:

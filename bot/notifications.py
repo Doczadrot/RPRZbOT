@@ -20,7 +20,7 @@ def set_bot_instance(bot):
     bot_instance = bot
     logger.info("✅ Bot instance установлен для notifications")
 
-def send_incident_notification(incident_data: Dict[str, Any]) -> Tuple[bool, str]:
+def send_incident_notification(incident_data: Dict[str, Any], media_files: list = None) -> Tuple[bool, str]:
     """
     Отправляет уведомление об инциденте через email и Telegram
     
@@ -35,8 +35,8 @@ def send_incident_notification(incident_data: Dict[str, Any]) -> Tuple[bool, str
         # Отправляем в Telegram админу
         telegram_success = send_telegram_notification(incident_data)
         
-        # Отправляем email уведомление
-        email_success = send_email_notification(incident_data)
+        # Отправляем email уведомление с медиафайлами
+        email_success = send_email_notification(incident_data, media_files)
         
         if telegram_success and email_success:
             return True, "Уведомления отправлены в Telegram и Email"
@@ -80,7 +80,7 @@ def send_telegram_notification(incident_data: Dict[str, Any]) -> bool:
         logger.error(f"Ошибка отправки Telegram уведомления: {e}")
         return False
 
-def send_email_notification(incident_data: Dict[str, Any]) -> bool:
+def send_email_notification(incident_data: Dict[str, Any], media_files: list = None) -> bool:
     """Отправляет email уведомление через Resend API"""
     try:
         # Получаем настройки Resend
@@ -108,12 +108,40 @@ def send_email_notification(incident_data: Dict[str, Any]) -> bool:
         subject = f"🚨 Инцидент в RPRZ боте - {incident_data.get('type', 'Сообщение об опасности')}"
         body = format_incident_email(incident_data)
         
+        # Формируем HTML с встроенными изображениями
+        html_content = f"""
+        <html>
+        <body>
+            <h2>🚨 НОВЫЙ ИНЦИДЕНТ</h2>
+            <p><strong>Пользователь:</strong> {incident_data.get('username', 'Неизвестно')} (ID: {incident_data.get('user_id', 'Неизвестно')})</p>
+            <p><strong>Описание:</strong> {incident_data.get('description', 'Не указано')}</p>
+            <p><strong>Место:</strong> {incident_data.get('location_text', 'Не указано')}</p>
+            <p><strong>Время:</strong> {incident_data.get('timestamp', 'Не указано')}</p>
+            <p><strong>Медиафайлов:</strong> {incident_data.get('media_count', 0)}</p>
+        """
+        
+        # Добавляем изображения в HTML
+        if media_files:
+            html_content += f"<p><strong>📷 Фотографии ({len(media_files)}):</strong></p>"
+            for idx, media in enumerate(media_files):
+                if media['type'] == 'photo':
+                    # Конвертируем в base64 для встраивания
+                    import base64
+                    img_data = base64.b64encode(media['data']).decode()
+                    html_content += f'<img src="data:image/jpeg;base64,{img_data}" style="max-width:600px; margin:10px 0;"><br>'
+        
+        html_content += """
+        </body>
+        </html>
+        """
+        
         # Отправляем через Resend API
         params = {
             "from": email_from,
             "to": [email_to],
             "subject": subject,
             "text": body,
+            "html": html_content,
         }
         
         email = resend.Emails.send(params)
