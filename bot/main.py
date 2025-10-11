@@ -17,6 +17,7 @@ from pathlib import Path
 import psutil
 import telebot
 import urllib3
+from flask import Flask, jsonify
 from dotenv import load_dotenv
 from handlers import (
     finish_danger_report,
@@ -193,6 +194,32 @@ def signal_handler(signum, frame):
 # Регистрируем обработчики сигналов
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
+
+# Flask приложение для Health Check
+health_app = Flask(__name__)
+
+@health_app.route('/health')
+def health_check():
+    """Health check endpoint для Railway"""
+    # Простая проверка рабочего времени без вызова функции
+    moscow_offset = timedelta(hours=3)
+    moscow_tz = timezone(moscow_offset)
+    moscow_time = datetime.now(moscow_tz)
+    current_hour = moscow_time.hour
+    working_hours = 7 <= current_hour < 19
+    
+    return jsonify({
+        "status": "healthy",
+        "service": "telegram-bot",
+        "working_hours": working_hours,
+        "current_time_moscow": moscow_time.strftime('%H:%M'),
+        "timestamp": datetime.now().isoformat()
+    })
+
+@health_app.route('/')
+def root():
+    """Root endpoint"""
+    return jsonify({"service": "RPRZ Telegram Bot", "status": "running"})
 
 # Функция для маскирования чувствительных данных
 
@@ -1500,6 +1527,15 @@ if __name__ == "__main__":
         # Ждем немного перед запуском
         logger.info("Ожидание 3 секунды...")
         time.sleep(3)
+
+        # Запуск Flask сервера для Health Check в отдельном потоке
+        import threading
+        def run_flask():
+            health_app.run(host='0.0.0.0', port=int(os.getenv('PORT', 8000)), debug=False, use_reloader=False)
+        
+        flask_thread = threading.Thread(target=run_flask, daemon=True)
+        flask_thread.start()
+        logger.info("✅ Flask Health Check сервер запущен на порту 8000")
 
         logger.info("Запуск polling...")
         logger.info("Настройки polling: interval=3, timeout=20, none_stop=True")
