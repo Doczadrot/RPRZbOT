@@ -81,13 +81,29 @@ def send_telegram_notification(incident_data: Dict[str, Any]) -> bool:
 def send_email_notification(incident_data: Dict[str, Any]) -> bool:
     """Отправляет email уведомление"""
     try:
-        # Получаем настройки SMTP (поддержка Yandex и стандартных переменных)
-        smtp_server = os.getenv('YANDEX_SMTP_HOST') or os.getenv('SMTP_SERVER')
-        smtp_port = int(os.getenv('YANDEX_SMTP_PORT') or os.getenv('SMTP_PORT', 587))
-        smtp_username = os.getenv('YANDEX_SMTP_USER') or os.getenv('SMTP_USERNAME')
-        smtp_password = os.getenv('YANDEX_SMTP_PASSWORD') or os.getenv('SMTP_PASSWORD')
-        email_to = os.getenv('ADMIN_EMAIL') or os.getenv('INCIDENT_NOTIFICATION_EMAILS')
+        # Получаем настройки SMTP (проверяем все возможные переменные)
+        smtp_server = (os.getenv('YANDEX_SMTP_HOST') or 
+                      os.getenv('SMTP_SERVER') or 
+                      os.getenv('SMTP_HOST'))
+        smtp_port = int(os.getenv('YANDEX_SMTP_PORT') or 
+                       os.getenv('SMTP_PORT') or 
+                       os.getenv('PORT', 587))
+        smtp_username = (os.getenv('YANDEX_SMTP_USER') or 
+                        os.getenv('SMTP_USERNAME') or 
+                        os.getenv('SMTP_USER'))
+        smtp_password = (os.getenv('YANDEX_SMTP_PASSWORD') or 
+                        os.getenv('SMTP_PASSWORD') or 
+                        os.getenv('SMTP_PASS'))
+        email_to = (os.getenv('ADMIN_EMAIL') or 
+                   os.getenv('INCIDENT_NOTIFICATION_EMAILS') or 
+                   os.getenv('NOTIFICATION_EMAIL'))
         
+        # Отладочная информация о всех переменных
+        logger.info("🔍 Отладка SMTP переменных:")
+        logger.info(f"YANDEX_SMTP_HOST: {os.getenv('YANDEX_SMTP_HOST', 'НЕТ')}")
+        logger.info(f"YANDEX_SMTP_USER: {os.getenv('YANDEX_SMTP_USER', 'НЕТ')}")
+        logger.info(f"YANDEX_SMTP_PASSWORD: {'ЕСТЬ' if os.getenv('YANDEX_SMTP_PASSWORD') else 'НЕТ'}")
+        logger.info(f"ADMIN_EMAIL: {os.getenv('ADMIN_EMAIL', 'НЕТ')}")
         logger.info(f"🔍 SMTP настройки: server={smtp_server}, port={smtp_port}, user={smtp_username}, to={email_to}")
         
         if not all([smtp_server, smtp_username, smtp_password, email_to]):
