@@ -490,7 +490,8 @@ def finish_danger_report(message, user_data, placeholders):
     except Exception as e:
         logger.error(f"❌ Ошибка уведомления пользователя: {e}")
     
-    return "main_menu", {"text": response_text, "reply_markup": markup}
+    # Возвращаем только состояние, без повторной отправки сообщения
+    return "main_menu", None
 
 
 def get_location_keyboard():
