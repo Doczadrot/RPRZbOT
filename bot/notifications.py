@@ -81,20 +81,22 @@ def send_telegram_notification(incident_data: Dict[str, Any]) -> bool:
 def send_email_notification(incident_data: Dict[str, Any]) -> bool:
     """Отправляет email уведомление"""
     try:
-        # Получаем настройки SMTP
-        smtp_server = os.getenv('SMTP_SERVER')
-        smtp_port = int(os.getenv('SMTP_PORT', 587))
-        smtp_username = os.getenv('SMTP_USERNAME')
-        smtp_password = os.getenv('SMTP_PASSWORD')
-        email_to = os.getenv('ADMIN_EMAIL')
+        # Получаем настройки SMTP (поддержка Yandex и стандартных переменных)
+        smtp_server = os.getenv('YANDEX_SMTP_HOST') or os.getenv('SMTP_SERVER')
+        smtp_port = int(os.getenv('YANDEX_SMTP_PORT') or os.getenv('SMTP_PORT', 587))
+        smtp_username = os.getenv('YANDEX_SMTP_USER') or os.getenv('SMTP_USERNAME')
+        smtp_password = os.getenv('YANDEX_SMTP_PASSWORD') or os.getenv('SMTP_PASSWORD')
+        email_to = os.getenv('ADMIN_EMAIL') or os.getenv('INCIDENT_NOTIFICATION_EMAILS')
+        
+        logger.info(f"🔍 SMTP настройки: server={smtp_server}, port={smtp_port}, user={smtp_username}, to={email_to}")
         
         if not all([smtp_server, smtp_username, smtp_password, email_to]):
             missing = []
-            if not smtp_server: missing.append("SMTP_SERVER")
-            if not smtp_port: missing.append("SMTP_PORT") 
-            if not smtp_username: missing.append("SMTP_USERNAME")
-            if not smtp_password: missing.append("SMTP_PASSWORD")
-            if not email_to: missing.append("ADMIN_EMAIL")
+            if not smtp_server: missing.append("YANDEX_SMTP_HOST или SMTP_SERVER")
+            if not smtp_port: missing.append("YANDEX_SMTP_PORT или SMTP_PORT") 
+            if not smtp_username: missing.append("YANDEX_SMTP_USER или SMTP_USERNAME")
+            if not smtp_password: missing.append("YANDEX_SMTP_PASSWORD или SMTP_PASSWORD")
+            if not email_to: missing.append("ADMIN_EMAIL или INCIDENT_NOTIFICATION_EMAILS")
             logger.warning(f"⚠️ SMTP настройки не полные. Отсутствуют: {', '.join(missing)}")
             return False
             
