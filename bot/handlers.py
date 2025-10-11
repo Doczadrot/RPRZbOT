@@ -3,14 +3,14 @@
 Содержит логику для всех 4 основных функций
 """
 
+import csv
+import json
 import os
 import sys
-import json
-import csv
 from datetime import datetime
 
-from telebot import types
 from loguru import logger
+from telebot import types
 
 # Импорт сервиса уведомлений
 try:
@@ -45,12 +45,18 @@ def log_activity(chat_id: int, username: str, action: str, payload: str = ""):
         with open(log_file, "a", newline="", encoding="utf-8-sig") as f:
             writer = csv.writer(f)
             if not file_exists:
-                writer.writerow(["timestamp", "user_id", "username", "action", "payload"])
+                writer.writerow(
+                    ["timestamp", "user_id", "username", "action", "payload"]
+                )
 
-            writer.writerow([datetime.now().isoformat(), chat_id, username, action, payload[:100]])
+            writer.writerow(
+                [datetime.now().isoformat(), chat_id, username, action, payload[:100]]
+            )
 
         # Дополнительное логирование в user_actions.log
-        logger.bind(user_id=chat_id).info(f"Activity: {action} | {username} | {payload[:50]}")
+        logger.bind(user_id=chat_id).info(
+            f"Activity: {action} | {username} | {payload[:50]}"
+        )
 
     except Exception as e:
         logger.error(f"Ошибка логирования активности: {e}")
@@ -76,7 +82,13 @@ def log_incident(chat_id: int, incident_data: dict):
                 logger.info(f"Создан бэкап поврежденного файла: {backup_file}")
                 incidents = []
 
-        incidents.append({"timestamp": datetime.now().isoformat(), "user_id": chat_id, "incident": incident_data})
+        incidents.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "user_id": chat_id,
+                "incident": incident_data,
+            }
+        )
 
         with open(log_file, "w", encoding="utf-8-sig") as f:
             json.dump(incidents, f, ensure_ascii=False, indent=2)
@@ -94,7 +106,13 @@ def log_suggestion(chat_id: int, suggestion_data: dict):
             with open(log_file, "r", encoding="utf-8-sig") as f:
                 suggestions = json.load(f)
 
-        suggestions.append({"timestamp": datetime.now().isoformat(), "user_id": chat_id, "suggestion": suggestion_data})
+        suggestions.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "user_id": chat_id,
+                "suggestion": suggestion_data,
+            }
+        )
 
         with open(log_file, "w", encoding="utf-8-sig") as f:
             json.dump(suggestions, f, ensure_ascii=False, indent=2)
@@ -132,7 +150,9 @@ def handle_danger_report_text(message, user_data, placeholders):
         from .main import sanitize_user_input, validate_user_input
 
         sanitized_text = sanitize_user_input(text)
-        is_valid, validation_error = validate_user_input(sanitized_text, min_length=1, max_length=1000)
+        is_valid, validation_error = validate_user_input(
+            sanitized_text, min_length=1, max_length=1000
+        )
 
         if not is_valid:
             return "danger_report", f"❌ {validation_error}"
@@ -154,7 +174,10 @@ def handle_danger_report_text(message, user_data, placeholders):
             "⬅️ Назад",
             "📷 Продолжить",
         ]:
-            return "danger_report", "❌ Пожалуйста, введите текстовое описание инцидента, а не нажимайте кнопки"
+            return (
+                "danger_report",
+                "❌ Пожалуйста, введите текстовое описание инцидента, а не нажимайте кнопки",
+            )
 
         if len(sanitized_text) > 500:
             return "danger_report", "❌ Описание слишком длинное! Максимум 500 символов."
@@ -168,7 +191,9 @@ def handle_danger_report_text(message, user_data, placeholders):
         log_activity(chat_id, username, "danger_description", text[:50])
 
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add(types.KeyboardButton("📍 Отправить геолокацию", request_location=True))
+        markup.add(
+            types.KeyboardButton("📍 Отправить геолокацию", request_location=True)
+        )
         markup.add(types.KeyboardButton("📝 Указать текстом"))
         markup.add(types.KeyboardButton("⏭️ Пропустить"))
         markup.add(types.KeyboardButton("⬅️ Назад"))
@@ -208,10 +233,16 @@ def handle_danger_report_text(message, user_data, placeholders):
             # Если пользователь вводит текст, считаем это указанием
             # местоположения текстом
             if len(text) > 200:
-                return "danger_report", "❌ Описание места слишком длинное! Максимум 200 символов."
+                return (
+                    "danger_report",
+                    "❌ Описание места слишком длинное! Максимум 200 символов.",
+                )
 
             if len(text.strip()) < 3:
-                return "danger_report", "❌ Описание места слишком короткое! Минимум 3 символа."
+                return (
+                    "danger_report",
+                    "❌ Описание места слишком короткое! Минимум 3 символа.",
+                )
 
             user_data["location_text"] = text.strip()
             user_data["step"] = "media"
@@ -228,18 +259,35 @@ def handle_danger_report_text(message, user_data, placeholders):
 
     elif step == "location_text":
         # Проверяем, что это не кнопка
-        if text in ["📍 Отправить геолокацию", "📝 Указать текстом", "⏭️ Пропустить", "📷 Продолжить"]:
-            return "danger_report", "❌ Пожалуйста, введите текстовое описание места, а не нажимайте кнопки"
+        if text in [
+            "📍 Отправить геолокацию",
+            "📝 Указать текстом",
+            "⏭️ Пропустить",
+            "📷 Продолжить",
+        ]:
+            return (
+                "danger_report",
+                "❌ Пожалуйста, введите текстовое описание места, а не нажимайте кнопки",
+            )
         elif text == "⬅️ Назад":
             # Возвращаемся к выбору способа указания места
             user_data["step"] = "location"
-            return "danger_report", {"text": "📍 Укажите место происшествия:", "reply_markup": get_location_keyboard()}
+            return "danger_report", {
+                "text": "📍 Укажите место происшествия:",
+                "reply_markup": get_location_keyboard(),
+            }
 
         if len(text) > 200:
-            return "danger_report", "❌ Описание места слишком длинное! Максимум 200 символов."
+            return (
+                "danger_report",
+                "❌ Описание места слишком длинное! Максимум 200 символов.",
+            )
 
         if len(text.strip()) < 3:
-            return "danger_report", "❌ Описание места слишком короткое! Минимум 3 символа."
+            return (
+                "danger_report",
+                "❌ Описание места слишком короткое! Минимум 3 символа.",
+            )
 
         user_data["location_text"] = text.strip()
         user_data["step"] = "media"
@@ -259,7 +307,10 @@ def handle_danger_report_text(message, user_data, placeholders):
             return finish_danger_report(message, user_data, placeholders)
         elif text == "📍 Изменить место":
             user_data["step"] = "location"
-            return "danger_report", {"text": "📍 Укажите место происшествия:", "reply_markup": get_location_keyboard()}
+            return "danger_report", {
+                "text": "📍 Укажите место происшествия:",
+                "reply_markup": get_location_keyboard(),
+            }
         elif text == "📝 Изменить описание":
             user_data["step"] = "description"
             return "danger_report", {
@@ -268,14 +319,23 @@ def handle_danger_report_text(message, user_data, placeholders):
             }
         elif text == "❌ Отменить":
             user_data.clear()
-            return "main_menu", {"text": "❌ Сообщение об опасности отменено", "reply_markup": get_main_menu_keyboard()}
+            return "main_menu", {
+                "text": "❌ Сообщение об опасности отменено",
+                "reply_markup": get_main_menu_keyboard(),
+            }
         elif text == "⬅️ Назад":
             # Возвращаемся к выбору места
             user_data["step"] = "location"
-            return "danger_report", {"text": "📍 Укажите место происшествия:", "reply_markup": get_location_keyboard()}
+            return "danger_report", {
+                "text": "📍 Укажите место происшествия:",
+                "reply_markup": get_location_keyboard(),
+            }
         else:
             # Игнорируем текст, который не является кнопкой
-            return "danger_report", "❌ Прикрепите медиафайлы или выберите действие из меню"
+            return (
+                "danger_report",
+                "❌ Прикрепите медиафайлы или выберите действие из меню",
+            )
 
 
 def handle_danger_report_location(message, user_data):
@@ -283,7 +343,10 @@ def handle_danger_report_location(message, user_data):
     chat_id = message.chat.id
     username = message.from_user.username or "Unknown"
 
-    user_data["location"] = {"latitude": message.location.latitude, "longitude": message.location.longitude}
+    user_data["location"] = {
+        "latitude": message.location.latitude,
+        "longitude": message.location.longitude,
+    }
     user_data["step"] = "media"
 
     log_activity(
@@ -374,14 +437,15 @@ def finish_danger_report(message, user_data, placeholders):
         admin_chat_id = os.getenv("ADMIN_CHAT_ID")
         if admin_chat_id:
             from datetime import datetime
+
             current_time = datetime.now()
-            
+
             admin_text = "🚨 НОВЫЙ ИНЦИДЕНТ\n\n"
             admin_text += f"👤 Пользователь: {username} (ID: {chat_id})\n"
             admin_text += f"📝 Описание: {incident_data['description']}\n"
             if incident_data["location"]:
-                lat = incident_data['location']['latitude']
-                lon = incident_data['location']['longitude']
+                lat = incident_data["location"]["latitude"]
+                lon = incident_data["location"]["longitude"]
                 admin_text += f"📍 Координаты: {lat}, {lon}\n"
             elif incident_data["location_text"]:
                 admin_text += f"📍 Место: {incident_data['location_text']}\n"
@@ -397,58 +461,89 @@ def finish_danger_report(message, user_data, placeholders):
                 try:
                     bot_instance.send_message(admin_chat_id, admin_text)
                     logger.info("✅ Уведомление админу в Telegram отправлено")
-                    
+
                     # Отправляем медиафайлы админу
-                    if incident_data['media']:
-                        logger.info(f"📷 Отправка {len(incident_data['media'])} медиафайлов админу")
-                        for i, media_item in enumerate(incident_data['media'], 1):
+                    if incident_data["media"]:
+                        logger.info(
+                            f"📷 Отправка {len(incident_data['media'])} медиафайлов админу"
+                        )
+                        for i, media_item in enumerate(incident_data["media"], 1):
                             try:
-                                if media_item['type'] == 'photo':
+                                if media_item["type"] == "photo":
                                     bot_instance.send_photo(
-                                        admin_chat_id, 
-                                        media_item['file_id'],
-                                        caption=f"📷 Медиафайл {i}/{len(incident_data['media'])}"
+                                        admin_chat_id,
+                                        media_item["file_id"],
+                                        caption=f"📷 Медиафайл {i}/{len(incident_data['media'])}",
                                     )
-                                elif media_item['type'] == 'video':
+                                elif media_item["type"] == "video":
                                     bot_instance.send_video(
                                         admin_chat_id,
-                                        media_item['file_id'],
-                                        caption=f"🎥 Медиафайл {i}/{len(incident_data['media'])}"
+                                        media_item["file_id"],
+                                        caption=f"🎥 Медиафайл {i}/{len(incident_data['media'])}",
                                     )
-                                elif media_item['type'] == 'document':
+                                elif media_item["type"] == "document":
                                     bot_instance.send_document(
                                         admin_chat_id,
-                                        media_item['file_id'],
-                                        caption=f"📄 Медиафайл {i}/{len(incident_data['media'])}"
+                                        media_item["file_id"],
+                                        caption=f"📄 Медиафайл {i}/{len(incident_data['media'])}",
                                     )
                                 logger.info(f"✅ Медиафайл {i} отправлен админу")
                             except Exception as media_error:
-                                logger.error(f"❌ Ошибка отправки медиафайла {i}: {media_error}")
-                                
+                                logger.error(
+                                    f"❌ Ошибка отправки медиафайла {i}: {media_error}"
+                                )
+
                 except Exception as bot_error:
                     logger.error(f"❌ Ошибка отправки админу в Telegram: {bot_error}")
             else:
-                logger.warning("⚠️ Объект bot не инициализирован для отправки уведомления админу")
+                logger.warning(
+                    "⚠️ Объект bot не инициализирован для отправки уведомления админу"
+                )
         else:
             logger.warning("⚠️ ADMIN_CHAT_ID не настроен")
-            
+
         logger.info("🔍 Переход к email уведомлениям...")
 
         # Скачиваем медиафайлы для email
         downloaded_media = []
-        if incident_data.get('media') and bot_instance:
-            logger.info(f"📷 Скачивание {len(incident_data['media'])} медиафайлов для email...")
-            for media_item in incident_data['media']:
+        if incident_data.get("media") and bot_instance:
+            logger.info(
+                f"📷 Скачивание {len(incident_data['media'])} медиафайлов для email..."
+            )
+            import mimetypes
+
+            for media_item in incident_data["media"]:
                 try:
-                    file_info = bot_instance.get_file(media_item['file_id'])
+                    file_info = bot_instance.get_file(media_item["file_id"])
                     downloaded_file = bot_instance.download_file(file_info.file_path)
-                    
-                    downloaded_media.append({
-                        'data': downloaded_file,
-                        'type': media_item['type'],
-                        'filename': f"{media_item['type']}_{media_item['file_id'][:8]}.jpg"
-                    })
-                    logger.info(f"✅ Медиафайл {media_item['type']} скачан для email")
+
+                    # Определяем правильное расширение файла из пути Telegram
+                    file_extension = os.path.splitext(file_info.file_path)[1] or ".jpg"
+
+                    # Определяем MIME-тип
+                    mime_type = mimetypes.guess_type(file_info.file_path)[0]
+                    if not mime_type:
+                        # Fallback для разных типов медиа
+                        if media_item["type"] == "photo":
+                            mime_type = "image/jpeg"
+                        elif media_item["type"] == "video":
+                            mime_type = "video/mp4"
+                        elif media_item["type"] == "document":
+                            mime_type = "application/octet-stream"
+                        else:
+                            mime_type = "application/octet-stream"
+
+                    downloaded_media.append(
+                        {
+                            "data": downloaded_file,
+                            "type": media_item["type"],
+                            "filename": f"{media_item['type']}_{media_item['file_id'][:8]}{file_extension}",
+                            "mime_type": mime_type,
+                        }
+                    )
+                    logger.info(
+                        f"✅ Медиафайл {media_item['type']} скачан для email (MIME: {mime_type})"
+                    )
                 except Exception as e:
                     logger.error(f"❌ Ошибка скачивания медиафайла: {e}")
 
@@ -457,11 +552,17 @@ def finish_danger_report(message, user_data, placeholders):
         if NOTIFICATIONS_AVAILABLE:
             try:
                 logger.info("🔍 Вызов send_incident_notification...")
-                notification_success, notification_message = send_incident_notification(incident_data, downloaded_media)
+                notification_success, notification_message = send_incident_notification(
+                    incident_data, downloaded_media
+                )
                 if notification_success:
-                    logger.info(f"✅ Яндекс уведомления отправлены: {notification_message}")
+                    logger.info(
+                        f"✅ Яндекс уведомления отправлены: {notification_message}"
+                    )
                 else:
-                    logger.warning(f"⚠️ Ошибка Яндекс уведомлений: {notification_message}")
+                    logger.warning(
+                        f"⚠️ Ошибка Яндекс уведомлений: {notification_message}"
+                    )
             except Exception as e:
                 logger.error(f"❌ Ошибка вызова send_incident_notification: {e}")
         else:
@@ -490,13 +591,18 @@ def finish_danger_report(message, user_data, placeholders):
         incident_data["description"],
         (
             "Координаты: {:.6f}, {:.6f}".format(
-                incident_data["location"]["latitude"], incident_data["location"]["longitude"]
+                incident_data["location"]["latitude"],
+                incident_data["location"]["longitude"],
             )
             if incident_data["location"]
-            else (incident_data["location_text"] if incident_data["location_text"] else "Не указано")
+            else (
+                incident_data["location_text"]
+                if incident_data["location_text"]
+                else "Не указано"
+            )
         ),
         incident_data["media_count"],
-        datetime.now().strftime('%d.%m.%Y %H:%M:%S') + " МСК",
+        datetime.now().strftime("%d.%m.%Y %H:%M:%S") + " МСК",
         placeholders.get("contacts", {}).get("security", "Не указан"),
         placeholders.get("contacts", {}).get("safety", "Не указан"),
     )
@@ -507,7 +613,7 @@ def finish_danger_report(message, user_data, placeholders):
         logger.info("✅ Пользователь уведомлен о регистрации инцидента")
     except Exception as e:
         logger.error(f"❌ Ошибка уведомления пользователя: {e}")
-    
+
     # Возвращаем только состояние, без повторной отправки сообщения
     return "main_menu", None
 
@@ -545,7 +651,10 @@ def handle_shelter_finder_text(message, placeholders):
     elif text == "⏭️ Пропустить":
         # Возвращаем данные для отправки изображений убежищ
         shelters = placeholders.get("shelters", [])
-        return "shelter_finder", {"shelters": shelters, "action": "show_shelters_with_photos"}
+        return "shelter_finder", {
+            "shelters": shelters,
+            "action": "show_shelters_with_photos",
+        }
     else:
         return "shelter_finder", "❌ Отправьте геолокацию или нажмите 'Пропустить'"
 
@@ -563,14 +672,27 @@ def handle_improvement_suggestion_text(message, placeholders, user_data):
         return "main_menu", None
 
     # Проверяем, что это не кнопка
-    if text in ["❗ Сообщите об опасности", "🏠 Ближайшее укрытие", "💡 Предложение по улучшению"]:
-        return "improvement_suggestion", "❌ Пожалуйста, введите текстовое предложение, а не нажимайте кнопки"
+    if text in [
+        "❗ Сообщите об опасности",
+        "🏠 Ближайшее укрытие",
+        "💡 Предложение по улучшению",
+    ]:
+        return (
+            "improvement_suggestion",
+            "❌ Пожалуйста, введите текстовое предложение, а не нажимайте кнопки",
+        )
 
     if len(text) > 1000:
-        return "improvement_suggestion", "❌ Предложение слишком длинное! Максимум 1000 символов."
+        return (
+            "improvement_suggestion",
+            "❌ Предложение слишком длинное! Максимум 1000 символов.",
+        )
 
     if len(text.strip()) < 10:
-        return "improvement_suggestion", "❌ Предложение слишком короткое! Минимум 10 символов."
+        return (
+            "improvement_suggestion",
+            "❌ Предложение слишком короткое! Минимум 10 символов.",
+        )
 
     # Сохраняем предложение
     suggestion_data = {
@@ -595,7 +717,10 @@ def handle_improvement_suggestion_text(message, placeholders, user_data):
         "Спасибо за вашу активность!"
     ).format(text)
 
-    return "main_menu", {"text": response_text, "reply_markup": get_main_menu_keyboard()}
+    return "main_menu", {
+        "text": response_text,
+        "reply_markup": get_main_menu_keyboard(),
+    }
 
 
 def save_enhanced_suggestion(chat_id, suggestion_data):
@@ -651,7 +776,9 @@ def categorize_suggestion(text: str) -> str:
         return "performance"
     elif any(word in text_lower for word in ["уведомл", "оповещ", "нотиф"]):
         return "notifications"
-    elif any(word in text_lower for word in ["функци", "возможност", "фича", "добавить"]):
+    elif any(
+        word in text_lower for word in ["функци", "возможност", "фича", "добавить"]
+    ):
         return "functionality"
     else:
         return "general"
@@ -678,16 +805,24 @@ def show_popular_suggestions(message):
     try:
         suggestions_file = "logs/enhanced_suggestions.json"
         if not os.path.exists(suggestions_file):
-            return {"text": "📋 Пока нет предложений", "reply_markup": get_back_keyboard()}
+            return {
+                "text": "📋 Пока нет предложений",
+                "reply_markup": get_back_keyboard(),
+            }
 
         with open(suggestions_file, "r", encoding="utf-8") as f:
             suggestions = json.load(f)
 
         # Сортируем по голосам
-        popular = sorted(suggestions, key=lambda x: x.get("votes", 0), reverse=True)[:10]
+        popular = sorted(suggestions, key=lambda x: x.get("votes", 0), reverse=True)[
+            :10
+        ]
 
         if not popular:
-            return {"text": "📋 Пока нет предложений", "reply_markup": get_back_keyboard()}
+            return {
+                "text": "📋 Пока нет предложений",
+                "reply_markup": get_back_keyboard(),
+            }
 
         text = "🏆 ТОП-10 ПОПУЛЯРНЫХ ПРЕДЛОЖЕНИЙ:\n\n"
         for i, sugg in enumerate(popular, 1):
@@ -697,7 +832,10 @@ def show_popular_suggestions(message):
 
     except Exception as e:
         logger.error(f"Ошибка показа популярных предложений: {e}")
-        return {"text": "❌ Ошибка загрузки предложений", "reply_markup": get_back_keyboard()}
+        return {
+            "text": "❌ Ошибка загрузки предложений",
+            "reply_markup": get_back_keyboard(),
+        }
 
 
 def show_user_suggestions(message):
@@ -707,7 +845,10 @@ def show_user_suggestions(message):
     try:
         suggestions_file = "logs/enhanced_suggestions.json"
         if not os.path.exists(suggestions_file):
-            return {"text": "📋 У вас пока нет предложений", "reply_markup": get_back_keyboard()}
+            return {
+                "text": "📋 У вас пока нет предложений",
+                "reply_markup": get_back_keyboard(),
+            }
 
         with open(suggestions_file, "r", encoding="utf-8") as f:
             suggestions = json.load(f)
@@ -716,7 +857,10 @@ def show_user_suggestions(message):
         user_suggestions = [s for s in suggestions if s.get("user_id") == chat_id]
 
         if not user_suggestions:
-            return {"text": "📋 У вас пока нет предложений", "reply_markup": get_back_keyboard()}
+            return {
+                "text": "📋 У вас пока нет предложений",
+                "reply_markup": get_back_keyboard(),
+            }
 
         text = "📋 ВАШИ ПРЕДЛОЖЕНИЯ:\n\n"
         for i, sugg in enumerate(user_suggestions, 1):
@@ -726,53 +870,59 @@ def show_user_suggestions(message):
 
     except Exception as e:
         logger.error(f"Ошибка показа предложений пользователя: {e}")
-        return {"text": "❌ Ошибка загрузки ваших предложений", "reply_markup": get_back_keyboard()}
+        return {
+            "text": "❌ Ошибка загрузки ваших предложений",
+            "reply_markup": get_back_keyboard(),
+        }
 
 
 def test_email_notifications(message):
     """Тестирует отправку email уведомлений (только для админов)"""
     try:
-        from bot.notifications import send_incident_notification
         from datetime import datetime
-        
+
+        from bot.notifications import send_incident_notification
+
         # Тестовые данные инцидента
         test_incident = {
-            'type': 'ТЕСТ EMAIL',
-            'user_name': message.from_user.first_name or 'Test User',
-            'user_id': message.from_user.id,
-            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'description': 'Тестовое уведомление для проверки настройки email в Railway',
-            'severity': 'НИЗКАЯ'
+            "type": "ТЕСТ EMAIL",
+            "user_name": message.from_user.first_name or "Test User",
+            "user_id": message.from_user.id,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "description": "Тестовое уведомление для проверки настройки email в Railway",
+            "severity": "НИЗКАЯ",
         }
-        
+
         logger.info("🧪 Тестирование email уведомлений...")
-        
+
         # Отправляем тестовое уведомление
         success, result_message = send_incident_notification(test_incident)
-        
+
         if success:
             bot_instance.send_message(
                 message.chat.id,
                 f"✅ Тестовое email уведомление отправлено!\n\n"
                 f"📧 Результат: {result_message}\n"
                 f"📬 Проверьте почту: {os.getenv('ADMIN_EMAIL', 'не настроено')}",
-                reply_markup=get_back_keyboard()
+                reply_markup=get_back_keyboard(),
             )
-            logger.info(f"✅ Тестовое email уведомление успешно отправлено: {result_message}")
+            logger.info(
+                f"✅ Тестовое email уведомление успешно отправлено: {result_message}"
+            )
         else:
             bot_instance.send_message(
                 message.chat.id,
                 f"❌ Ошибка отправки email уведомления!\n\n"
                 f"🔍 Проблема: {result_message}\n\n"
                 f"📝 Проверьте настройки SMTP в Railway Variables",
-                reply_markup=get_back_keyboard()
+                reply_markup=get_back_keyboard(),
             )
             logger.warning(f"❌ Ошибка тестового email уведомления: {result_message}")
-            
+
     except Exception as e:
         logger.error(f"Ошибка тестирования email: {e}")
         bot_instance.send_message(
             message.chat.id,
             f"❌ Ошибка тестирования email уведомлений: {str(e)}",
-            reply_markup=get_back_keyboard()
+            reply_markup=get_back_keyboard(),
         )
