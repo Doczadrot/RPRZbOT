@@ -29,6 +29,7 @@ def send_incident_notification(incident_data: Dict[str, Any]) -> Tuple[bool, str
     Returns:
         Tuple[bool, str]: (успех, сообщение)
     """
+    logger.info("🔍 Начало send_incident_notification")
     try:
         # Отправляем в Telegram админу
         telegram_success = send_telegram_notification(incident_data)
