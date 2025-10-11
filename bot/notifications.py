@@ -118,6 +118,8 @@ def send_email_notification(incident_data: Dict[str, Any]) -> bool:
         
         email = resend.Emails.send(params)
         logger.info(f"✅ Email уведомление отправлено через Resend: {email}")
+        logger.info(f"📧 Email ID: {email.get('id', 'N/A')}")
+        logger.info(f"📧 Отправлено с: {email_from} на: {email_to}")
         return True
         
     except Exception as e:
