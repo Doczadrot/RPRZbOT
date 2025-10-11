@@ -2,7 +2,7 @@
 nixPkgs = ["python310"]
 
 [phases.install]
-cmds = ["source /opt/venv/bin/activate && pip install --upgrade pip", "source /opt/venv/bin/activate && pip install -r requirements.txt"]
+cmds = ["python -m ensurepip --upgrade", "python -m pip install --upgrade pip", "python -m pip install -r requirements.txt"]
 
 [start]
-cmd = "source /opt/venv/bin/activate && python bot/main.py"
+cmd = "python bot/main.py"
