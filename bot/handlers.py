@@ -431,8 +431,11 @@ def finish_danger_report(message, user_data, placeholders):
                 logger.warning("⚠️ Объект bot не инициализирован для отправки уведомления админу")
         else:
             logger.warning("⚠️ ADMIN_CHAT_ID не настроен")
+            
+        logger.info("🔍 Переход к email уведомлениям...")
 
         # Отправляем через Яндекс уведомления
+        logger.info(f"🔍 NOTIFICATIONS_AVAILABLE: {NOTIFICATIONS_AVAILABLE}")
         if NOTIFICATIONS_AVAILABLE:
             notification_success, notification_message = send_incident_notification(incident_data)
             if notification_success:
