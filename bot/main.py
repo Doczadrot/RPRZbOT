@@ -28,6 +28,7 @@ from handlers import (
     handle_danger_report_media,
     handle_danger_report_text,
     handle_improvement_suggestion_text,
+    handle_rprz_assistant_text,
     log_activity,
     set_bot_instance,
 )
@@ -570,6 +571,7 @@ class BotStates(StatesGroup):
     main_menu = State()
     danger_report = State()
     shelter_finder = State()
+    rprz_assistant = State()
     improvement_suggestion = State()
 
 
@@ -614,6 +616,7 @@ def handle_uninitialized_user(message):
         "Я помогу вам:\n"
         "❗ Сообщить об опасности\n"
         "🏠 Найти ближайшее укрытие\n"
+        "🤖 Помощник РПРЗ - ответы на вопросы\n"
         "💡 Предложить улучшения\n\n"
         "Выберите действие из меню:"
     )
@@ -674,6 +677,7 @@ def start_command(message):
         "Я помогу вам:\n"
         "❗ Сообщить об опасности\n"
         "🏠 Найти ближайшее укрытие\n"
+        "🤖 Помощник РПРЗ - ответы на вопросы\n"
         "💡 Предложить улучшения\n\n"
         "Выберите действие из меню:"
     )
@@ -836,6 +840,9 @@ def handle_text(message):
         elif sanitized_text == "🏠 Ближайшее укрытие":
             logger.bind(user_id=user_id).info("Пользователь выбрал 'Ближайшее укрытие'")
             start_shelter_finder(message)
+        elif sanitized_text == "🤖 Помощник РПРЗ":
+            logger.bind(user_id=user_id).info("Пользователь выбрал 'Помощник РПРЗ'")
+            start_rprz_assistant(message)
         elif sanitized_text == "💡 Предложение по улучшению":
             logger.bind(user_id=user_id).info(
                 "Пользователь выбрал 'Предложение по улучшению'"
@@ -924,6 +931,21 @@ def handle_text(message):
                 "❓ Выберите действие из меню:",
                 reply_markup=get_back_keyboard(),
             )
+
+    elif user_states.get(chat_id) == "rprz_assistant":
+        result = handle_rprz_assistant_text(message, placeholders)
+        if isinstance(result, tuple):
+            new_state, response = result
+            user_states[chat_id] = new_state
+            if new_state == "main_menu":
+                bot.set_state(chat_id, BotStates.main_menu)
+                bot.send_message(
+                    chat_id, response, reply_markup=get_main_menu_keyboard()
+                )
+            else:
+                bot.send_message(chat_id, response, reply_markup=get_back_keyboard())
+        else:
+            bot.send_message(chat_id, result, reply_markup=get_back_keyboard())
 
     elif user_states.get(chat_id) == "improvement_suggestion":
         result = handle_improvement_suggestion_text(message, placeholders, user_data)
@@ -1017,6 +1039,38 @@ def start_shelter_finder(message):
         "🏠 Поиск ближайшего укрытия\n\n" "Выберите действие:",
         reply_markup=markup,
     )
+
+
+def start_rprz_assistant(message):
+    """Начало работы с помощником РПРЗ"""
+    chat_id = message.chat.id
+    username = message.from_user.username or "Unknown"
+
+    log_activity(chat_id, username, "rprz_assistant_start")
+
+    user_states[chat_id] = "rprz_assistant"
+    user_data[chat_id] = {"step": "question"}
+    bot.set_state(chat_id, BotStates.rprz_assistant)
+
+    welcome_text = (
+        "🤖 Помощник РПРЗ\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "Я помогу вам найти информацию по:\n\n"
+        "📋 Инструкциям по технике безопасности\n"
+        "🏭 Правилам работы на производстве\n"
+        "⚠️ Процедурам при ЧС\n"
+        "📞 Контактам служб безопасности\n"
+        "🏠 Расположению убежищ\n\n"
+        "❓ Примеры вопросов:\n"
+        "• Где находится ближайшее убежище?\n"
+        "• Как действовать при пожаре?\n"
+        "• Контакты службы безопасности?\n"
+        "• Инструкции по охране труда\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "💬 Задайте ваш вопрос:"
+    )
+
+    bot.send_message(chat_id, welcome_text, reply_markup=get_back_keyboard())
 
 
 def start_improvement_suggestion(message):
