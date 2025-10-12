@@ -413,7 +413,7 @@ def show_all_shelters(chat_id: int):
                         bot.send_photo(
                             chat_id,
                             photo_file,
-                            caption=f"🏠 {shelter['name']}",
+                            caption="🏠",
                         )
                 except Exception as photo_error:
                     logger.warning(
@@ -510,7 +510,7 @@ def find_nearest_shelter(chat_id: int, user_lat: float, user_lon: float):
             if photo_path and os.path.exists(photo_path):
                 try:
                     with open(photo_path, "rb") as photo_file:
-                        caption = f"{'🎯' if i == 1 else '🏠'} #{i} {shelter['name']}"
+                        caption = f"{'🎯' if i == 1 else '🏠'} #{i}"
                         bot.send_photo(chat_id, photo_file, caption=caption)
                 except Exception as photo_error:
                     logger.warning(
