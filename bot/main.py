@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 MVP Telegram-бот по безопасности РПРЗ
-Основной файл бота с 4 основными функциями безопасности
+Основной файл бота с 3 основными функциями безопасности
 """
 
 import csv
@@ -11,14 +11,14 @@ import signal
 import ssl
 import sys
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import psutil
 import telebot
 import urllib3
-from flask import Flask, jsonify
 from dotenv import load_dotenv
+from flask import Flask, jsonify
 from handlers import (
     finish_danger_report,
     get_back_keyboard,
@@ -198,7 +198,8 @@ signal.signal(signal.SIGTERM, signal_handler)
 # Flask приложение для Health Check
 health_app = Flask(__name__)
 
-@health_app.route('/health')
+
+@health_app.route("/health")
 def health_check():
     """Health check endpoint для Railway"""
     # Простая проверка рабочего времени без вызова функции
@@ -207,35 +208,37 @@ def health_check():
     moscow_time = datetime.now(moscow_tz)
     current_hour = moscow_time.hour
     working_hours = 7 <= current_hour < 19
-    
-    return jsonify({
-        "status": "healthy",
-        "service": "telegram-bot",
-        "working_hours": working_hours,
-        "current_time_moscow": moscow_time.strftime('%H:%M'),
-        "timestamp": datetime.now().isoformat()
-    })
 
-@health_app.route('/')
+    return jsonify(
+        {
+            "status": "healthy",
+            "service": "telegram-bot",
+            "working_hours": working_hours,
+            "current_time_moscow": moscow_time.strftime("%H:%M"),
+            "timestamp": datetime.now().isoformat(),
+        }
+    )
+
+
+@health_app.route("/")
 def root():
     """Root endpoint"""
     return jsonify({"service": "RPRZ Telegram Bot", "status": "running"})
 
+
 # Функция для маскирования чувствительных данных
+
 
 def is_working_hours() -> bool:
     """Проверяет рабочее время: 7:00-19:00 МСК"""
-    # ВРЕМЕННО ОТКЛЮЧЕНО: бот работает 24/7
-    return True
-    
     # МСК = UTC+3
-    # moscow_offset = timedelta(hours=3)
-    # moscow_tz = timezone(moscow_offset)
-    # moscow_time = datetime.now(moscow_tz)
-    # current_hour = moscow_time.hour
-    # 
-    # # Рабочие часы: 7:00-19:00
-    # return 7 <= current_hour < 19
+    moscow_offset = timedelta(hours=3)
+    moscow_tz = timezone(moscow_offset)
+    moscow_time = datetime.now(moscow_tz)
+    current_hour = moscow_time.hour
+
+    # Рабочие часы: 7:00-19:00
+    return 7 <= current_hour < 19
 
 
 def check_and_shutdown_if_needed():
@@ -244,7 +247,9 @@ def check_and_shutdown_if_needed():
         moscow_offset = timedelta(hours=3)
         moscow_tz = timezone(moscow_offset)
         moscow_time = datetime.now(moscow_tz)
-        logger.warning(f"⏰ Нерабочее время! Текущее время МСК: {moscow_time.strftime('%H:%M')}. Бот останавливается для экономии ресурсов.")
+        logger.warning(
+            f"⏰ Нерабочее время! Текущее время МСК: {moscow_time.strftime('%H:%M')}. Бот останавливается для экономии ресурсов."
+        )
         logger.info("🕐 Рабочие часы бота: 7:00-19:00 МСК")
         sys.exit(0)
 
@@ -609,7 +614,6 @@ def handle_uninitialized_user(message):
         "Я помогу вам:\n"
         "❗ Сообщить об опасности\n"
         "🏠 Найти ближайшее укрытие\n"
-        "🧑‍🏫 Получить консультацию по безопасности\n"
         "💡 Предложить улучшения\n\n"
         "Выберите действие из меню:"
     )
@@ -623,6 +627,25 @@ def start_command(message):
     chat_id = message.chat.id
     username = message.from_user.username or "Unknown"
     user_id = message.from_user.id
+
+    # Проверка рабочего времени
+    if not is_working_hours():
+        moscow_offset = timedelta(hours=3)
+        moscow_tz = timezone(moscow_offset)
+        moscow_time = datetime.now(moscow_tz)
+        bot.send_message(
+            chat_id,
+            f"⏰ Бот работает с 7:00 до 19:00 МСК\n\n"
+            f"🕐 Текущее время МСК: {moscow_time.strftime('%H:%M')}\n\n"
+            f"Пожалуйста, обратитесь в рабочие часы.\n"
+            f"В экстренных случаях звоните:\n"
+            f"📞 Служба безопасности: {placeholders.get('contacts', {}).get('security', 'Не указан')}\n"
+            f"📞 Охрана труда: {placeholders.get('contacts', {}).get('safety', 'Не указан')}",
+        )
+        logger.info(
+            f"⏰ Пользователь {username} ({chat_id}) попытался запустить бота вне рабочих часов: {moscow_time.strftime('%H:%M')} МСК"
+        )
+        return
 
     # Проверка безопасности
     if SECURITY_ENABLED:
@@ -651,7 +674,6 @@ def start_command(message):
         "Я помогу вам:\n"
         "❗ Сообщить об опасности\n"
         "🏠 Найти ближайшее укрытие\n"
-        "🧑‍🏫 Получить консультацию по безопасности\n"
         "💡 Предложить улучшения\n\n"
         "Выберите действие из меню:"
     )
@@ -1128,18 +1150,18 @@ def handle_media(message):
     if user_states.get(chat_id) == "danger_report":
         # Проверяем этап - медиафайлы принимаются только на этапе "media"
         current_step = user_data.get(chat_id, {}).get("step", "")
-        
+
         if current_step in ["location", "location_text"]:
             # Отклоняем медиафайлы на этапе указания места
             bot.send_message(
-                chat_id, 
-                "❌ Пожалуйста, укажите местоположение инцидента текстом или отправьте геолокацию. Файлы не принимаются для поля 'Место'."
+                chat_id,
+                "❌ Пожалуйста, укажите местоположение инцидента текстом или отправьте геолокацию. Файлы не принимаются для поля 'Место'.",
             )
             logger.bind(user_id=user_id).warning(
                 f"Отклонен медиафайл на этапе указания места: {current_step}"
             )
             return
-            
+
         elif current_step == "media":
             # Обрабатываем медиафайлы только на этапе "media"
             logger.bind(user_id=user_id).info(
@@ -1152,8 +1174,8 @@ def handle_media(message):
         else:
             # Медиафайлы не принимаются на других этапах
             bot.send_message(
-                chat_id, 
-                "❌ Медиафайлы можно прикреплять только на этапе добавления фото/видео к инциденту."
+                chat_id,
+                "❌ Медиафайлы можно прикреплять только на этапе добавления фото/видео к инциденту.",
             )
             logger.bind(user_id=user_id).warning(
                 f"Отклонен медиафайл на этапе: {current_step}"
@@ -1377,7 +1399,7 @@ def get_inline_main_menu():
 if __name__ == "__main__":
     # Проверка рабочего времени (экономия ресурсов Railway)
     check_and_shutdown_if_needed()
-    
+
     # Проверка блокировки процесса (пропускаем для Railway/контейнеров)
     IS_RAILWAY = os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID")
 
@@ -1488,6 +1510,7 @@ if __name__ == "__main__":
     # Устанавливаем глобальный экземпляр бота для notifications
     try:
         from bot.notifications import set_bot_instance
+
         set_bot_instance(bot)
         logger.info("✅ Bot instance установлен для notifications")
     except ImportError as e:
@@ -1557,9 +1580,15 @@ if __name__ == "__main__":
 
         # Запуск Flask сервера для Health Check в отдельном потоке
         import threading
+
         def run_flask():
-            health_app.run(host='0.0.0.0', port=int(os.getenv('PORT', 8000)), debug=False, use_reloader=False)
-        
+            health_app.run(
+                host="0.0.0.0",
+                port=int(os.getenv("PORT", 8000)),
+                debug=False,
+                use_reloader=False,
+            )
+
         flask_thread = threading.Thread(target=run_flask, daemon=True)
         flask_thread.start()
         logger.info("✅ Flask Health Check сервер запущен на порту 8000")
