@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""
-Скрипт-обёртка для запуска бота по расписанию в Railway
+"""Скрипт-обёртка для запуска бота по расписанию в Railway.
+
 Бот работает только с 7:00 до 19:00 МСК
 """
 
@@ -14,21 +14,21 @@ from loguru import logger
 
 
 def get_moscow_time():
-    """Получает текущее время в МСК"""
+    """Получает текущее время в МСК."""
     moscow_offset = timedelta(hours=3)
     moscow_tz = timezone(moscow_offset)
     return datetime.now(moscow_tz)
 
 
 def is_working_hours():
-    """Проверяет рабочее время: 7:00-19:00 МСК"""
+    """Проверяет рабочее время: 7:00-19:00 МСК."""
     moscow_time = get_moscow_time()
     current_hour = moscow_time.hour
     return 7 <= current_hour < 19
 
 
 def wait_until_working_hours():
-    """Ожидает начала рабочего дня"""
+    """Ожидает начала рабочего дня."""
     moscow_time = get_moscow_time()
     current_hour = moscow_time.hour
 
@@ -55,7 +55,7 @@ def wait_until_working_hours():
 
 
 def run_bot():
-    """Запускает основной бот"""
+    """Запускает основной бот."""
     logger.info("🤖 Запуск основного бота...")
 
     # Запускаем бот как подпроцесс
@@ -100,39 +100,73 @@ def run_bot():
 
 
 def main():
-    """Главная функция"""
+    """Главная функция."""
     logger.info("=" * 60)
     logger.info("🚀 Запуск планировщика бота РПРЗ")
     logger.info("📅 Рабочие часы: 7:00-19:00 МСК")
     logger.info("=" * 60)
-    
+
     while True:
         # Ждём начала рабочего дня, если сейчас нерабочее время
         if not is_working_hours():
             wait_until_working_hours()
-        
+
         # Запускаем бота
         moscow_time = get_moscow_time()
         logger.info(f"✅ Начало рабочего дня: {moscow_time.strftime('%H:%M')} МСК")
-        
-        # В рабочее время - просто импортируем и запускаем бот напрямую
-        logger.info("🚀 Запуск основного бота напрямую...")
-        
+
+        # В рабочее время - запускаем бот через subprocess
+        logger.info("🚀 Запуск основного бота...")
+
         try:
-            # Импортируем и запускаем main.py напрямую
-            import sys
-            import os
-            sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-            
-            # Запускаем бот
-            from bot.main import main as bot_main
-            bot_main()
-            
+            # Запускаем бот как подпроцесс с правильным путем
+            process = subprocess.Popen(
+                [sys.executable, "bot/main.py"],
+                stdout=sys.stdout,
+                stderr=sys.stderr,
+                cwd=os.path.dirname(os.path.abspath(__file__)),
+            )
+
+            logger.info(f"✅ Бот запущен (PID: {process.pid})")
+
+            # Мониторим процесс и рабочее время
+            while True:
+                time.sleep(60)
+
+                # Проверяем, работает ли процесс
+                if process.poll() is not None:
+                    logger.warning("⚠️ Процесс бота завершился")
+                    break
+
+                # Проверяем рабочее время
+                if not is_working_hours():
+                    moscow_time = get_moscow_time()
+                    logger.info(
+                        f"⏰ Рабочий день окончен: {moscow_time.strftime('%H:%M')} МСК"
+                    )
+                    logger.info("🛑 Останавливаем бота...")
+
+                    process.terminate()
+                    try:
+                        process.wait(timeout=10)
+                    except subprocess.TimeoutExpired:
+                        logger.warning("⚠️ Принудительная остановка бота")
+                        process.kill()
+                        process.wait()
+
+                    logger.info("✅ Бот остановлен")
+                    break
+
         except KeyboardInterrupt:
             logger.info("⏹️ Бот остановлен пользователем")
+            if "process" in locals():
+                process.terminate()
+                process.wait(timeout=5)
             break
         except Exception as e:
             logger.error(f"❌ Ошибка запуска бота: {e}")
+            if "process" in locals():
+                process.terminate()
             time.sleep(30)
 
 
