@@ -6,7 +6,9 @@
       "lat": "47.2357",
       "lon": "39.7015",
       "photo_path": "assets/images/shelter_1.jpg",
-      "map_link": "https://yandex.ru/maps/?pt=39.7015,47.2357&z=16&l=map"
+      "map_link": "https://yandex.ru/maps/?pt=39.7015,47.2357&z=16&l=map",
+      "contact_phone": "+7 (495) 101-01-01",
+      "responsible_person": "Петров И.А."
     },
     {
       "name": "Убежище №2 - Северный район",
@@ -14,7 +16,9 @@
       "lat": "47.2650",
       "lon": "39.7100",
       "photo_path": "assets/images/shelter_2.jpg",
-      "map_link": "https://yandex.ru/maps/?pt=39.7100,47.2650&z=16&l=map"
+      "map_link": "https://yandex.ru/maps/?pt=39.7100,47.2650&z=16&l=map",
+      "contact_phone": "+7 (495) 102-02-02",
+      "responsible_person": "Сидоров В.Н."
     },
     {
       "name": "Убежище №3 - Западный район",
@@ -22,7 +26,9 @@
       "lat": "47.2280",
       "lon": "39.6850",
       "photo_path": "assets/images/shelter_3.jpg",
-      "map_link": "https://yandex.ru/maps/?pt=39.6850,47.2280&z=16&l=map"
+      "map_link": "https://yandex.ru/maps/?pt=39.6850,47.2280&z=16&l=map",
+      "contact_phone": "+7 (495) 103-03-03",
+      "responsible_person": "Иванова М.С."
     }
   ],
   "contacts": {
