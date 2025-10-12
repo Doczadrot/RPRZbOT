@@ -764,6 +764,9 @@ def handle_text(message):
     username = message.from_user.username or "Unknown"
     user_id = message.from_user.id
     text = message.text
+    
+    # Логируем каждое текстовое сообщение
+    logger.info(f"📝 Текст от {username} ({user_id}): {text[:50]}{'...' if len(text) > 50 else ''}")
 
     # Проверка безопасности (rate limiting, flood control)
     if SECURITY_ENABLED:
@@ -814,6 +817,7 @@ def handle_text(message):
 
     # Обработка кнопки "Назад"
     if sanitized_text == "⬅️ Назад":
+        logger.info(f"⬅️ {username} ({chat_id}) вернулся в главное меню")
         user_states[chat_id] = "main_menu"
         bot.set_state(chat_id, BotStates.main_menu)
         bot.send_message(
@@ -861,6 +865,7 @@ def handle_text(message):
 
     # Обработка состояний
     elif user_states.get(chat_id) == "danger_report":
+        logger.info(f"🚨 {username} ({chat_id}) в процессе сообщения об опасности")
         logger.bind(user_id=user_id).debug(
             f"Обработка состояния 'danger_report' для пользователя {username}"
         )
@@ -912,6 +917,7 @@ def handle_text(message):
             bot.send_message(chat_id, result, reply_markup=get_back_keyboard())
 
     elif user_states.get(chat_id) == "shelter_finder":
+        logger.info(f"🏠 {username} ({chat_id}) работает с поиском убежищ")
         if text == "⬅️ Назад":
             user_states[chat_id] = "main_menu"
             bot.set_state(chat_id, BotStates.main_menu)
@@ -919,6 +925,7 @@ def handle_text(message):
                 chat_id, "🏠 Главное меню:", reply_markup=get_main_menu_keyboard()
             )
         elif text == "📋 Показать список убежищ":
+            logger.info(f"📋 {username} ({chat_id}) запросил список всех убежищ")
             show_all_shelters(chat_id)
         elif text == "📍 Отправить геолокацию":
             bot.send_message(
@@ -933,6 +940,7 @@ def handle_text(message):
             )
 
     elif user_states.get(chat_id) == "rprz_assistant":
+        logger.info(f"🤖 {username} ({chat_id}) задаёт вопрос помощнику")
         result = handle_rprz_assistant_text(message, placeholders)
         if isinstance(result, tuple):
             new_state, response = result
@@ -948,6 +956,7 @@ def handle_text(message):
             bot.send_message(chat_id, result, reply_markup=get_back_keyboard())
 
     elif user_states.get(chat_id) == "improvement_suggestion":
+        logger.info(f"💡 {username} ({chat_id}) отправляет предложение")
         result = handle_improvement_suggestion_text(message, placeholders, user_data)
         if isinstance(result, tuple):
             new_state, response = result
@@ -999,6 +1008,7 @@ def start_danger_report(message):
     chat_id = message.chat.id
     username = message.from_user.username or "Unknown"
 
+    logger.info(f"🚨 {username} ({chat_id}) начал сообщение об опасности")
     log_activity(chat_id, username, "danger_report_start")
 
     # Устанавливаем состояние для сообщения об опасности
@@ -1024,6 +1034,7 @@ def start_shelter_finder(message):
     chat_id = message.chat.id
     username = message.from_user.username or "Unknown"
 
+    logger.info(f"🏠 {username} ({chat_id}) ищет ближайшее укрытие")
     log_activity(chat_id, username, "shelter_finder_start")
 
     user_states[chat_id] = "shelter_finder"
@@ -1046,6 +1057,7 @@ def start_rprz_assistant(message):
     chat_id = message.chat.id
     username = message.from_user.username or "Unknown"
 
+    logger.info(f"🤖 {username} ({chat_id}) открыл Помощник РПРЗ")
     log_activity(chat_id, username, "rprz_assistant_start")
 
     user_states[chat_id] = "rprz_assistant"
@@ -1078,6 +1090,7 @@ def start_improvement_suggestion(message):
     chat_id = message.chat.id
     username = message.from_user.username or "Unknown"
 
+    logger.info(f"💡 {username} ({chat_id}) начал отправку предложения по улучшению")
     log_activity(chat_id, username, "improvement_suggestion_start")
 
     user_states[chat_id] = "improvement_suggestion"
@@ -1115,6 +1128,8 @@ def handle_location(message):
     user_id = message.from_user.id
     user_lat = message.location.latitude
     user_lon = message.location.longitude
+
+    logger.info(f"📍 {username} ({chat_id}) отправил геолокацию: {user_lat:.4f}, {user_lon:.4f}")
 
     # Проверка безопасности
     if SECURITY_ENABLED:
@@ -1161,6 +1176,8 @@ def handle_media(message):
     username = message.from_user.username or "Unknown"
     user_id = message.from_user.id
     content_type = message.content_type
+
+    logger.info(f"📷 {username} ({chat_id}) отправил медиафайл: {content_type}")
 
     # Проверка безопасности
     if SECURITY_ENABLED:
@@ -1251,6 +1268,7 @@ def handle_callback(call):
     user_id = call.from_user.id
     data = call.data
 
+    logger.info(f"🔘 {username} ({chat_id}) нажал кнопку: {data}")
     logger.bind(user_id=user_id).info(f"Получен callback от {username}: {data}")
 
     try:
