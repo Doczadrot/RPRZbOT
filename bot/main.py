@@ -24,19 +24,34 @@ from telebot import types
 from telebot.handler_backends import State, StatesGroup
 from telebot.storage import StateMemoryStorage
 
-from bot.handlers import (
-    finish_danger_report,
-    get_back_keyboard,
-    get_main_menu_keyboard,
-    get_media_keyboard,
-    handle_danger_report_location,
-    handle_danger_report_media,
-    handle_danger_report_text,
-    handle_improvement_suggestion_text,
-    handle_rprz_assistant_text,
-    log_activity,
-    set_bot_instance,
-)
+try:
+    from bot.handlers import (
+        finish_danger_report,
+        get_back_keyboard,
+        get_main_menu_keyboard,
+        get_media_keyboard,
+        handle_danger_report_location,
+        handle_danger_report_media,
+        handle_danger_report_text,
+        handle_improvement_suggestion_text,
+        handle_rprz_assistant_text,
+        log_activity,
+        set_bot_instance,
+    )
+except ImportError:
+    from handlers import (
+        finish_danger_report,
+        get_back_keyboard,
+        get_main_menu_keyboard,
+        get_media_keyboard,
+        handle_danger_report_location,
+        handle_danger_report_media,
+        handle_danger_report_text,
+        handle_improvement_suggestion_text,
+        handle_rprz_assistant_text,
+        log_activity,
+        set_bot_instance,
+    )
 
 # Отключаем SSL предупреждения для тестирования
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -52,19 +67,25 @@ try:
 
     SECURITY_ENABLED = True
     logger.info("✅ Модуль безопасности загружен")
-except ImportError as e:
-    SECURITY_ENABLED = False
-    logger.warning(f"⚠️ Модуль безопасности не загружен: {e}")
+except ImportError:
+    try:
+        from security import check_user_security, validate_user_file, validate_user_text
 
-    # Заглушки для функций безопасности
-    def check_user_security(user_id, action="general"):
-        return True, None
+        SECURITY_ENABLED = True
+        logger.info("✅ Модуль безопасности загружен")
+    except ImportError as e:
+        SECURITY_ENABLED = False
+        logger.warning(f"⚠️ Модуль безопасности не загружен: {e}")
 
-    def validate_user_text(text, user_id):
-        return True, None
+        # Заглушки для функций безопасности
+        def check_user_security(user_id, action="general"):
+            return True, None
 
-    def validate_user_file(file_size, file_type, user_id, max_size_mb=20):
-        return True, None
+        def validate_user_text(text, user_id):
+            return True, None
+
+        def validate_user_file(file_size, file_type, user_id, max_size_mb=20):
+            return True, None
 
 
 # Импорт системы кэширования
@@ -80,25 +101,38 @@ try:
 
     CACHE_ENABLED = True
     logger.info("✅ Модуль кэширования загружен")
-except ImportError as e:
-    CACHE_ENABLED = False
-    logger.warning(f"⚠️ Модуль кэширования не загружен: {e}")
+except ImportError:
+    try:
+        from cache import (
+            cache,
+            cache_shelter_data,
+            cache_user_data,
+            cleanup_cache,
+            get_cached_shelter_data,
+            get_cached_user_data,
+        )
 
-    # Заглушки для функций кэширования
-    def cache_user_data(user_id, data, ttl=3600):
-        pass
+        CACHE_ENABLED = True
+        logger.info("✅ Модуль кэширования загружен")
+    except ImportError as e:
+        CACHE_ENABLED = False
+        logger.warning(f"⚠️ Модуль кэширования не загружен: {e}")
 
-    def get_cached_user_data(user_id):
-        return None
+        # Заглушки для функций кэширования
+        def cache_user_data(user_id, data, ttl=3600):
+            pass
 
-    def cache_shelter_data(shelter_id, data, ttl=7200):
-        pass
+        def get_cached_user_data(user_id):
+            return None
 
-    def get_cached_shelter_data(shelter_id):
-        return None
+        def cache_shelter_data(shelter_id, data, ttl=7200):
+            pass
 
-    def cleanup_cache():
-        pass
+        def get_cached_shelter_data(shelter_id):
+            return None
+
+        def cleanup_cache():
+            pass
 
 
 # Импорт оптимизированного процессора медиафайлов
@@ -111,19 +145,29 @@ try:
 
     MEDIA_PROCESSOR_ENABLED = True
     logger.info("✅ Модуль обработки медиафайлов загружен")
-except ImportError as e:
-    MEDIA_PROCESSOR_ENABLED = False
-    logger.warning(f"⚠️ Модуль обработки медиафайлов не загружен: {e}")
+except ImportError:
+    try:
+        from media_processor import (
+            get_media_processing_stats,
+            process_media_file,
+            validate_media_file,
+        )
 
-    # Заглушки для функций обработки медиафайлов
-    def validate_media_file(file_size, mime_type, user_id):
-        return True, ""
+        MEDIA_PROCESSOR_ENABLED = True
+        logger.info("✅ Модуль обработки медиафайлов загружен")
+    except ImportError as e:
+        MEDIA_PROCESSOR_ENABLED = False
+        logger.warning(f"⚠️ Модуль обработки медиафайлов не загружен: {e}")
 
-    def process_media_file(file_path, mime_type):
-        return {"error": "Модуль обработки медиафайлов недоступен"}
+        # Заглушки для функций обработки медиафайлов
+        def validate_media_file(file_size, mime_type, user_id):
+            return True, ""
 
-    def get_media_processing_stats():
-        return {"error": "Модуль недоступен"}
+        def process_media_file(file_path, mime_type):
+            return {"error": "Модуль обработки медиафайлов недоступен"}
+
+        def get_media_processing_stats():
+            return {"error": "Модуль недоступен"}
 
 
 # Загрузка переменных окружения

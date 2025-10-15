@@ -20,11 +20,17 @@ try:
 
     NOTIFICATIONS_AVAILABLE = True
     logger.info("✅ Модуль notifications успешно загружен")
-except ImportError as e:
-    NOTIFICATIONS_AVAILABLE = False
-    logger.warning(f"⚠️ Модуль notifications не найден: {e}")
-    logger.warning(f"⚠️ Детали ошибки: {e}")
-    logger.warning(f"⚠️ Путь: {sys.path}")
+except ImportError:
+    try:
+        from notifications import send_incident_notification
+
+        NOTIFICATIONS_AVAILABLE = True
+        logger.info("✅ Модуль notifications успешно загружен")
+    except ImportError as e:
+        NOTIFICATIONS_AVAILABLE = False
+        logger.warning(f"⚠️ Модуль notifications не найден: {e}")
+        logger.warning(f"⚠️ Детали ошибки: {e}")
+        logger.warning(f"⚠️ Путь: {sys.path}")
 
 # Глобальная переменная для объекта bot (будет установлена из main.py)
 bot_instance = None
@@ -234,12 +240,15 @@ def handle_danger_report_text(message, user_data, placeholders):
             # Проверяем, что это не кнопка из медиа-меню
             if text in [
                 "📷 Продолжить",
-                "📍 Изменить место", 
+                "📍 Изменить место",
                 "📝 Изменить описание",
                 "❌ Отменить",
-                "⬅️ Назад"
+                "⬅️ Назад",
             ]:
-                return "danger_report", "❌ Пожалуйста, укажите реальное местоположение инцидента текстом или отправьте геолокацию. Кнопки не принимаются для поля 'Место'."
+                return (
+                    "danger_report",
+                    "❌ Пожалуйста, укажите реальное местоположение инцидента текстом или отправьте геолокацию. Кнопки не принимаются для поля 'Место'.",
+                )
 
             # Если пользователь вводит текст, считаем это указанием
             # местоположения текстом
@@ -425,7 +434,7 @@ def handle_danger_report_media(message, user_data, max_file_size_mb, max_video_s
 def finish_danger_report(message, user_data, placeholders):
     """Завершение процесса сообщения об опасности"""
     from datetime import datetime
-    
+
     chat_id = message.chat.id
     username = message.from_user.username or "Unknown"
 
@@ -449,7 +458,6 @@ def finish_danger_report(message, user_data, placeholders):
         # Отправляем в Telegram админу
         admin_chat_id = os.getenv("ADMIN_CHAT_ID")
         if admin_chat_id:
-
             current_time = datetime.now()
 
             admin_text = "🚨 НОВЫЙ ИНЦИДЕНТ\n\n"
