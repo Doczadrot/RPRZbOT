@@ -19,7 +19,12 @@ import telebot
 import urllib3
 from dotenv import load_dotenv
 from flask import Flask, jsonify
-from handlers import (
+from loguru import logger
+from telebot import types
+from telebot.handler_backends import State, StatesGroup
+from telebot.storage import StateMemoryStorage
+
+from bot.handlers import (
     finish_danger_report,
     get_back_keyboard,
     get_main_menu_keyboard,
@@ -32,10 +37,6 @@ from handlers import (
     log_activity,
     set_bot_instance,
 )
-from loguru import logger
-from telebot import types
-from telebot.handler_backends import State, StatesGroup
-from telebot.storage import StateMemoryStorage
 
 # Отключаем SSL предупреждения для тестирования
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -47,7 +48,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Импорт системы безопасности
 try:
-    from security import check_user_security, validate_user_file, validate_user_text
+    from bot.security import check_user_security, validate_user_file, validate_user_text
 
     SECURITY_ENABLED = True
     logger.info("✅ Модуль безопасности загружен")
@@ -64,6 +65,65 @@ except ImportError as e:
 
     def validate_user_file(file_size, file_type, user_id, max_size_mb=20):
         return True, None
+
+
+# Импорт системы кэширования
+try:
+    from bot.cache import (
+        cache,
+        cache_shelter_data,
+        cache_user_data,
+        cleanup_cache,
+        get_cached_shelter_data,
+        get_cached_user_data,
+    )
+
+    CACHE_ENABLED = True
+    logger.info("✅ Модуль кэширования загружен")
+except ImportError as e:
+    CACHE_ENABLED = False
+    logger.warning(f"⚠️ Модуль кэширования не загружен: {e}")
+
+    # Заглушки для функций кэширования
+    def cache_user_data(user_id, data, ttl=3600):
+        pass
+
+    def get_cached_user_data(user_id):
+        return None
+
+    def cache_shelter_data(shelter_id, data, ttl=7200):
+        pass
+
+    def get_cached_shelter_data(shelter_id):
+        return None
+
+    def cleanup_cache():
+        pass
+
+
+# Импорт оптимизированного процессора медиафайлов
+try:
+    from bot.media_processor import (
+        get_media_processing_stats,
+        process_media_file,
+        validate_media_file,
+    )
+
+    MEDIA_PROCESSOR_ENABLED = True
+    logger.info("✅ Модуль обработки медиафайлов загружен")
+except ImportError as e:
+    MEDIA_PROCESSOR_ENABLED = False
+    logger.warning(f"⚠️ Модуль обработки медиафайлов не загружен: {e}")
+
+    # Заглушки для функций обработки медиафайлов
+    def validate_media_file(file_size, mime_type, user_id):
+        return True, ""
+
+    def process_media_file(file_path, mime_type):
+        return {"error": "Модуль обработки медиафайлов недоступен"}
+
+    def get_media_processing_stats():
+        return {"error": "Модуль недоступен"}
 
 
 # Загрузка переменных окружения
@@ -98,26 +158,86 @@ MAX_VIDEO_SIZE_MB = int(os.getenv("MAX_VIDEO_SIZE_MB", "300"))
 def log_admin_error(error_type: str, error: Exception, context: dict = None):
     """Логирует ошибку с детальной информацией для админа"""
     try:
+        import traceback
+        from datetime import datetime
+
         # Безопасная обработка контекста
         safe_context = context if isinstance(context, dict) else {}
 
-        # Логируем в основной лог ошибок
+        # Получаем детальную информацию об ошибке
+        error_traceback = traceback.format_exc()
+        error_line = (
+            traceback.extract_tb(error.__traceback__)[-1].lineno
+            if error.__traceback__
+            else 0
+        )
+        error_file = (
+            traceback.extract_tb(error.__traceback__)[-1].filename
+            if error.__traceback__
+            else "unknown"
+        )
+
+        # Создаем детальную запись ошибки
+        error_details = {
+            "timestamp": datetime.now().isoformat(),
+            "error_type": error_type,
+            "exception_type": type(error).__name__,
+            "error_message": str(error),
+            "error_file": error_file,
+            "error_line": error_line,
+            "context": safe_context,
+            "traceback": error_traceback,
+        }
+
+        # Логируем в основной лог ошибок с деталями
         logger.error(
-            f"ADMIN_ERROR | {error_type} | {type(error).__name__}: {str(error)}"
+            f"ADMIN_ERROR | {error_type} | {type(error).__name__}: {str(error)} | "
+            f"File: {error_file}:{error_line}"
         )
 
         # Логируем в системный лог с дополнительной информацией
-        logger.bind(error_type=error_type).error(
-            f"{type(error).__name__}: {str(error)} | Context: {safe_context}"
+        logger.bind(
+            error_type=error_type, error_file=error_file, error_line=error_line
+        ).error(
+            f"{type(error).__name__}: {str(error)} | Context: {safe_context} | Traceback: {error_traceback}"
         )
 
-        # Если это критическая ошибка, логируем отдельно
+        # Если это критическая ошибка, логируем отдельно и отправляем уведомление
         if error_type in ["BOT_CRASH", "API_FAILURE", "CONFIG_ERROR"]:
             logger.critical(f"🚨 КРИТИЧЕСКАЯ ОШИБКА | {error_type} | {str(error)}")
 
+            # Сохраняем критическую ошибку в отдельный файл для быстрого доступа
+            try:
+                critical_log_file = "logs/critical_errors.json"
+                os.makedirs("logs", exist_ok=True)
+
+                # Читаем существующие критические ошибки
+                critical_errors = []
+                if os.path.exists(critical_log_file):
+                    try:
+                        with open(critical_log_file, "r", encoding="utf-8") as f:
+                            critical_errors = json.load(f)
+                    except (json.JSONDecodeError, Exception):
+                        critical_errors = []
+
+                # Добавляем новую ошибку
+                critical_errors.append(error_details)
+
+                # Оставляем только последние 50 ошибок
+                if len(critical_errors) > 50:
+                    critical_errors = critical_errors[-50:]
+
+                # Сохраняем
+                with open(critical_log_file, "w", encoding="utf-8") as f:
+                    json.dump(critical_errors, f, ensure_ascii=False, indent=2)
+
+            except Exception as save_error:
+                logger.error(f"Не удалось сохранить критическую ошибку: {save_error}")
+
     except Exception as log_error:
-        # Если даже логирование не работает
+        # Если даже логирование не работает - используем print как последний резерв
         print(f"ОШИБКА ЛОГИРОВАНИЯ: {log_error}")
+        print(f"Оригинальная ошибка: {error_type} - {error}")
 
 
 # Функции для работы с блокировкой процесса
@@ -202,23 +322,81 @@ health_app = Flask(__name__)
 
 @health_app.route("/health")
 def health_check():
-    """Health check endpoint для Railway"""
-    # Простая проверка рабочего времени без вызова функции
-    moscow_offset = timedelta(hours=3)
-    moscow_tz = timezone(moscow_offset)
-    moscow_time = datetime.now(moscow_tz)
-    current_hour = moscow_time.hour
-    working_hours = 7 <= current_hour < 19
+    """Health check endpoint для Railway с детальной информацией"""
+    try:
+        # Простая проверка рабочего времени без вызова функции
+        moscow_offset = timedelta(hours=3)
+        moscow_tz = timezone(moscow_offset)
+        moscow_time = datetime.now(moscow_tz)
+        current_hour = moscow_time.hour
+        working_hours = 7 <= current_hour < 19
 
-    return jsonify(
-        {
+        # Собираем информацию о производительности
+        health_data = {
             "status": "healthy",
             "service": "telegram-bot",
             "working_hours": working_hours,
             "current_time_moscow": moscow_time.strftime("%H:%M"),
             "timestamp": datetime.now().isoformat(),
+            "modules": {
+                "security": SECURITY_ENABLED,
+                "cache": CACHE_ENABLED,
+                "media_processor": MEDIA_PROCESSOR_ENABLED,
+                "notifications": getattr(
+                    sys.modules.get("bot.handlers", None),
+                    "NOTIFICATIONS_AVAILABLE",
+                    False,
+                ),
+            },
         }
-    )
+
+        # Добавляем статистику кэша если доступна
+        if CACHE_ENABLED:
+            try:
+                cache_stats = cache.get_stats()
+                health_data["cache_stats"] = {
+                    "total_items": cache_stats["total_items"],
+                    "valid_items": cache_stats["valid_items"],
+                    "memory_usage": cache_stats["memory_usage"],
+                }
+            except Exception as e:
+                health_data["cache_stats"] = {"error": str(e)}
+
+        # Добавляем статистику обработки медиафайлов если доступна
+        if MEDIA_PROCESSOR_ENABLED:
+            try:
+                media_stats = get_media_processing_stats()
+                health_data["media_stats"] = media_stats
+            except Exception as e:
+                health_data["media_stats"] = {"error": str(e)}
+
+        # Добавляем информацию о системе
+        try:
+            health_data["system"] = {
+                "active_users": len(user_states) if "user_states" in globals() else 0,
+                "uptime": time.time() - os.path.getctime(__file__)
+                if os.path.exists(__file__)
+                else 0,
+            }
+        except Exception:
+            health_data["system"] = {
+                "error": "Не удалось получить системную информацию"
+            }
+
+        return jsonify(health_data)
+
+    except Exception as e:
+        logger.error(f"Ошибка в health check: {e}")
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "error": str(e),
+                    "timestamp": datetime.now().isoformat(),
+                }
+            ),
+            500,
+        )
 
 
 @health_app.route("/")
@@ -388,12 +566,23 @@ def validate_user_input(
 
 # Функция для показа всех убежищ
 def show_all_shelters(chat_id: int):
-    """Показывает список всех убежищ"""
+    """Показывает список всех убежищ с кэшированием"""
     if not BOT_TOKEN or not bot:
         logger.warning("BOT_TOKEN не настроен, функция show_all_shelters недоступна")
         return
 
-    shelters = placeholders.get("shelters", [])
+    # Проверяем кэш для пользователя
+    if CACHE_ENABLED:
+        cached_shelters = get_cached_user_data(f"shelters_{chat_id}")
+        if cached_shelters is not None:
+            logger.debug(f"📥 Список убежищ для {chat_id} загружен из кэша")
+            shelters = cached_shelters
+        else:
+            shelters = placeholders.get("shelters", [])
+            # Кэшируем на 1 час
+            cache_user_data(f"shelters_{chat_id}", shelters, 3600)
+    else:
+        shelters = placeholders.get("shelters", [])
 
     if not shelters:
         bot.send_message(
@@ -584,10 +773,25 @@ class BotStates(StatesGroup):
 
 
 def load_placeholders():
-    """Загружает данные-заглушки из JSON файла"""
+    """Загружает данные-заглушки из JSON файла с кэшированием"""
     try:
+        # Проверяем кэш
+        if CACHE_ENABLED:
+            cached_data = cache.get("placeholders_data")
+            if cached_data is not None:
+                logger.debug("📥 Данные убежищ загружены из кэша")
+                return cached_data
+
+        # Загружаем из файла
         with open("configs/data_placeholders.json", "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+
+        # Кэшируем на 2 часа
+        if CACHE_ENABLED:
+            cache.set("placeholders_data", data, 7200)
+            logger.debug("💾 Данные убежищ сохранены в кэш")
+
+        return data
     except Exception as e:
         log_admin_error(
             "CONFIG_LOAD_ERROR", e, {"config_file": "configs/data_placeholders.json"}
@@ -1205,7 +1409,7 @@ def handle_media(message):
             logger.warning(f"🚫 Заблокирован медиафайл от {user_id}: {error_msg}")
             return
 
-        # Валидация файла
+        # Оптимизированная валидация файла
         file_size = 0
         mime_type = None
 
@@ -1219,8 +1423,15 @@ def handle_media(message):
             file_size = message.document.file_size
             mime_type = message.document.mime_type
 
-        # Проверяем файл
-        if file_size and mime_type:
+        # Используем оптимизированную валидацию если доступна
+        if MEDIA_PROCESSOR_ENABLED and file_size and mime_type:
+            is_valid, file_error = validate_media_file(file_size, mime_type, user_id)
+            if not is_valid:
+                bot.send_message(chat_id, file_error)
+                logger.warning(f"🚫 Невалидный файл от {user_id}: {file_error}")
+                return
+        elif file_size and mime_type:
+            # Fallback к старой системе валидации
             max_size = (
                 MAX_VIDEO_SIZE_MB if content_type == "video" else MAX_FILE_SIZE_MB
             )
@@ -1668,6 +1879,23 @@ if __name__ == "__main__":
         # Ждем немного перед запуском
         logger.info("Ожидание 3 секунды...")
         time.sleep(3)
+
+        # Запускаем периодическую очистку кэша
+        if CACHE_ENABLED:
+            import threading
+
+            def cache_cleanup_scheduler():
+                """Периодическая очистка кэша каждые 10 минут"""
+                while True:
+                    try:
+                        time.sleep(600)  # 10 минут
+                        cleanup_cache()
+                    except Exception as e:
+                        logger.error(f"Ошибка очистки кэша: {e}")
+
+            cache_thread = threading.Thread(target=cache_cleanup_scheduler, daemon=True)
+            cache_thread.start()
+            logger.info("✅ Планировщик очистки кэша запущен")
 
         # Запуск Flask сервера для Health Check в отдельном потоке
         import threading
