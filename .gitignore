@@ -110,8 +110,15 @@ logs/*.log
 logs/*.csv
 logs/*.json
 
-# Assets (media files)
-assets/
+# Assets (media files) - чувствительные данные
+assets/images/shelter_*.jpg
+assets/images/shelter_*.png
+assets/pdfs/
+bus_schedule.jpg
+
+# Конфигурационные файлы с чувствительными данными
+configs/data_placeholders.json
+configs/*.json
 
 # Process files
 bot.lock

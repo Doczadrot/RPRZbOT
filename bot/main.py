@@ -610,51 +610,167 @@ def show_all_shelters(chat_id: int):
         )
         return
 
-    success_count = 0
-    # Отправляем информацию о каждом убежище
-    for i, shelter in enumerate(shelters, 1):
-        try:
-            # Отправляем изображение убежища
-            photo_path = shelter.get("photo_path", "")
-            if photo_path and os.path.exists(photo_path):
-                try:
-                    with open(photo_path, "rb") as photo_file:
-                        bot.send_photo(
-                            chat_id,
-                            photo_file,
-                            caption="🏠",
-                        )
-                except Exception as photo_error:
-                    logger.warning(
-                        f"Не удалось отправить фото убежища {i}: {photo_error}"
-                    )
+    # Создаем кнопки для каждого убежища
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
-            # Отправляем информацию об убежище (без Markdown для стабильности)
-            shelter_text = (
-                f"🏠 {shelter['name']}\n\n"
-                f"📝 {shelter['description']}\n\n"
-                f"📍 Координаты: {shelter['lat']}, {shelter['lon']}\n"
-                f"📞 Контакт: {shelter.get('contact_phone', 'Не указан')}\n"
-                f"👤 Ответственный: {shelter.get('responsible_person', 'Не указан')}\n"
-                f"🌐 Карта: {shelter['map_link']}"
-            )
+    for shelter in shelters:
+        # Создаем кнопку для каждого убежища
+        shelter_name = shelter.get("name", "Без названия")
+        if "Главная проходная" in shelter_name:
+            button_text = "🏢 Убежище Главная проходная Ростсельмаш"
+        elif "Участок № 10" in shelter_name or "Убежище № 10" in shelter_name:
+            button_text = "🏭 Убежище № 10 (РПРЗ, 12 пролет)"
+        else:
+            button_text = f"🏠 {shelter_name}"
 
-            bot.send_message(chat_id, shelter_text)
-            success_count += 1
+        markup.add(types.KeyboardButton(button_text))
 
-        except Exception as e:
-            logger.error(f"Ошибка отправки информации об убежище {i}: {e}")
-            continue
+    # Добавляем кнопку "Назад"
+    markup.add(types.KeyboardButton("⬅️ Назад"))
 
-    # Финальное сообщение
     try:
-        final_text = (
-            f"✅ Показано убежищ: {success_count} из {len(shelters)}\n\n"
-            f"Все убежища оснащены современными системами безопасности."
+        bot.send_message(
+            chat_id,
+            "🏠 Выберите убежище для получения подробной информации:\n\n"
+            f"📋 Доступно убежищ: {len(shelters)}\n"
+            "🔍 Нажмите на название убежища для просмотра деталей",
+            reply_markup=markup,
         )
-        bot.send_message(chat_id, final_text, reply_markup=get_back_keyboard())
+        logger.info(
+            f"📋 Пользователю {chat_id} показаны кнопки для {len(shelters)} убежищ"
+        )
     except Exception as e:
-        logger.error(f"Ошибка отправки финального сообщения: {e}")
+        logger.error(f"Ошибка отправки кнопок убежищ: {e}")
+
+
+def show_specific_shelter(chat_id: int, shelter_name: str):
+    """Показывает подробную информацию о конкретном убежище"""
+    if not BOT_TOKEN or not bot:
+        logger.warning(
+            "BOT_TOKEN не настроен, функция show_specific_shelter недоступна"
+        )
+        return
+
+    shelters = placeholders.get("shelters", [])
+    selected_shelter = None
+
+    # Находим убежище по названию или ключевым словам
+    for shelter in shelters:
+        shelter_full_name = shelter.get("name", "")
+        if (
+            "Главная проходная" in shelter_name
+            and "Главная проходная" in shelter_full_name
+        ) or (
+            "№ 10" in shelter_name
+            and (
+                "Участок № 10" in shelter_full_name
+                or "Убежище № 10" in shelter_full_name
+            )
+        ):
+            selected_shelter = shelter
+            break
+
+    if not selected_shelter:
+        bot.send_message(
+            chat_id, "❌ Убежище не найдено", reply_markup=get_back_keyboard()
+        )
+        return
+
+    try:
+        # Отправляем изображение убежища
+        photo_path = selected_shelter.get("photo_path", "")
+        if photo_path and os.path.exists(photo_path):
+            try:
+                with open(photo_path, "rb") as photo_file:
+                    bot.send_photo(
+                        chat_id,
+                        photo_file,
+                        caption=f"📸 {selected_shelter['name']}",
+                    )
+            except Exception as photo_error:
+                logger.warning(f"Не удалось отправить фото убежища: {photo_error}")
+
+        # Отправляем подробную информацию об убежище
+        shelter_text = (
+            f"🏠 {selected_shelter['name']}\n\n"
+            f"📝 {selected_shelter['description']}\n\n"
+            f"📍 Координаты: {selected_shelter['lat']}, {selected_shelter['lon']}\n"
+            f"📞 Контакт: {selected_shelter.get('contact_phone', 'Не указан')}\n"
+            f"👤 Ответственный: {selected_shelter.get('responsible_person', 'Не указан')}\n\n"
+            f"🗺️ Показать на карте: {selected_shelter.get('map_link', 'Недоступна')}"
+        )
+
+        # Создаем кнопки с действиями для убежища
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        markup.add(types.KeyboardButton("📋 Показать список убежищ"))
+        markup.add(types.KeyboardButton("🗺️ Показать на карте"))
+        markup.add(types.KeyboardButton("⬅️ Назад"))
+
+        bot.send_message(chat_id, shelter_text, reply_markup=markup)
+
+        logger.info(
+            f"📋 Пользователю {chat_id} показано убежище: {selected_shelter['name']}"
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка отправки информации об убежище: {e}")
+        bot.send_message(
+            chat_id,
+            "❌ Ошибка получения информации об убежище",
+            reply_markup=get_back_keyboard(),
+        )
+
+
+def show_shelter_map(chat_id: int):
+    """Показывает карту с местоположением всех убежищ"""
+    if not BOT_TOKEN or not bot:
+        logger.warning("BOT_TOKEN не настроен, функция show_shelter_map недоступна")
+        return
+
+    shelters = placeholders.get("shelters", [])
+    if not shelters:
+        bot.send_message(
+            chat_id, "❌ Данные об убежищах недоступны", reply_markup=get_back_keyboard()
+        )
+        return
+
+    try:
+        map_text = "🗺️ Местоположения убежищ РПРЗ:\n\n"
+
+        for i, shelter in enumerate(shelters, 1):
+            shelter_name = shelter.get("name", "Без названия")
+            map_link = shelter.get("map_link", "")
+
+            map_text += f"{i}. **{shelter_name}**\n"
+            map_text += f"📍 {shelter.get('lat', 'N/A')}, {shelter.get('lon', 'N/A')}\n"
+            if map_link:
+                map_text += f"🔗 [Открыть на карте]({map_link})\n"
+            map_text += "\n"
+
+        # Добавляем общую ссылку на Яндекс.Карты с обеими точками
+        if len(shelters) >= 2:
+            shelter1 = shelters[0]
+            shelter2 = shelters[1]
+            combined_link = (
+                f"https://yandex.ru/maps/?pt="
+                f"{shelter1.get('lon', '39.763172')},{shelter1.get('lat', '47.258268')}"
+                f"~{shelter2.get('lon', '39.765541')},{shelter2.get('lat', '47.264452')}"
+                f"&z=15&l=map"
+            )
+            map_text += f"🗺️ [Показать все убежища на карте]({combined_link})"
+
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        markup.add(types.KeyboardButton("📋 Показать список убежищ"))
+        markup.add(types.KeyboardButton("⬅️ Назад"))
+
+        bot.send_message(chat_id, map_text, reply_markup=markup, parse_mode="Markdown")
+        logger.info(f"🗺️ Пользователю {chat_id} показана карта убежищ")
+
+    except Exception as e:
+        logger.error(f"Ошибка показа карты: {e}")
+        bot.send_message(
+            chat_id, "❌ Ошибка загрузки карты", reply_markup=get_back_keyboard()
+        )
 
 
 # Функция для поиска убежищ по геолокации (сортировка по близости)
@@ -1166,6 +1282,15 @@ def handle_text(message):
                 chat_id,
                 "📍 Нажмите кнопку 'Отправить геолокацию' для поиска ближайшего убежища",
             )
+        elif text == "🏢 Убежище Главная проходная Ростсельмаш":
+            logger.info(f"🏢 {username} ({chat_id}) выбрал убежище на главной проходной")
+            show_specific_shelter(chat_id, text)
+        elif text == "🏭 Убежище № 10 (РПРЗ, 12 пролет)":
+            logger.info(f"🏭 {username} ({chat_id}) выбрал убежище № 10")
+            show_specific_shelter(chat_id, text)
+        elif text == "🗺️ Показать на карте":
+            logger.info(f"🗺️ {username} ({chat_id}) запросил карту")
+            show_shelter_map(chat_id)
         else:
             bot.send_message(
                 chat_id,

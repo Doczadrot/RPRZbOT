@@ -1,0 +1,29 @@
+{
+  "shelters": [
+    {
+      "name": "Убежище №1 - Пример названия",
+      "description": "Описание убежища. Вместимость: XXX человек. Системы безопасности.",
+      "lat": "47.XXXXXX",
+      "lon": "39.XXXXXX",
+      "photo_path": "assets/images/shelter_1.jpg",
+      "map_link": "https://yandex.ru/maps/?pt=39.XXXXXX,47.XXXXXX&z=16&l=map",
+      "contact_phone": "+7 (863) XXX-XX-XX",
+      "responsible_person": "Ответственное лицо"
+    },
+    {
+      "name": "Убежище №2 - Пример названия",
+      "description": "Описание второго убежища. Вместимость: XXX человек.",
+      "lat": "47.XXXXXX",
+      "lon": "39.XXXXXX",
+      "photo_path": "assets/images/shelter_2.jpg",
+      "map_link": "https://yandex.ru/maps/?pt=39.XXXXXX,47.XXXXXX&z=16&l=map",
+      "contact_phone": "+7 (863) XXX-XX-XX",
+      "responsible_person": "Ответственное лицо"
+    }
+  ],
+  "contacts": {
+    "security": "+7 (XXX) XXX-XX-XX",
+    "safety": "+7 (XXX) XXX-XX-XX", 
+    "emergency": "112"
+  }
+}

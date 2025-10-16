@@ -453,6 +453,173 @@ class TestAdminNotifications(unittest.TestCase):
         self.assertIsNone(result[1])
 
 
+class TestShelterButtons(unittest.TestCase):
+    """Тесты для кнопок убежищ"""
+
+    def setUp(self):
+        """Настройка перед каждым тестом"""
+        self.mock_bot = Mock()
+        self.chat_id = 12345
+        self.shelters_data = [
+            {
+                "name": "Главная проходная Ростсельмаш",
+                "description": "Основное укрытие на главной проходной завода",
+                "lat": "47.258268",
+                "lon": "39.763172",
+                "photo_path": "assets/images/shelter_1.jpg",
+                "map_link": "https://yandex.ru/maps/?pt=39.763172,47.258268",
+                "contact_phone": "+7 (863) 251-00-00",
+            },
+            {
+                "name": "Убежище № 10 (Главный корпус РПРЗ, 12 пролет)",
+                "description": "Укрытие на участке № 10",
+                "lat": "47.264452",
+                "lon": "39.765541",
+                "photo_path": "assets/images/shelter_2.jpg",
+                "map_link": "https://yandex.ru/maps/?pt=39.765541,47.264452",
+                "contact_phone": "+7 (863) 251-10-00",
+            },
+        ]
+
+    @patch("builtins.open", create=True)
+    @patch("os.path.exists")
+    @patch("bot.main.BOT_TOKEN", "test_token")
+    @patch("bot.main.bot")
+    @patch(
+        "bot.main.placeholders",
+        {
+            "shelters": [
+                {
+                    "name": "Главная проходная Ростсельмаш",
+                    "description": "Основное укрытие на главной проходной завода",
+                    "lat": "47.258268",
+                    "lon": "39.763172",
+                    "photo_path": "assets/images/shelter_1.jpg",
+                    "map_link": "https://yandex.ru/maps/?pt=39.763172,47.258268",
+                    "contact_phone": "+7 (863) 251-00-00",
+                }
+            ]
+        },
+    )
+    def test_show_all_shelters_buttons(self, mock_bot, mock_exists, mock_open):
+        """Тест показа кнопок для всех убежищ"""
+        mock_exists.return_value = True
+        mock_open.return_value.__enter__.return_value = Mock()
+        mock_bot.send_message = Mock()
+
+        # Импортируем функцию для тестирования
+        from bot.main import show_all_shelters
+
+        # Вызываем функцию
+        show_all_shelters(self.chat_id)
+
+        # Проверяем, что бот отправил сообщение с кнопками
+        mock_bot.send_message.assert_called_once()
+        args, kwargs = mock_bot.send_message.call_args
+
+        self.assertEqual(args[0], self.chat_id)
+        self.assertIn("Выберите убежище для получения подробной информации", args[1])
+        self.assertIn("reply_markup", kwargs)
+
+    @patch("builtins.open", create=True)
+    @patch("os.path.exists")
+    @patch("bot.main.BOT_TOKEN", "test_token")
+    @patch("bot.main.bot")
+    @patch("bot.main.placeholders")
+    def test_show_specific_shelter_main_gate(
+        self, mock_placeholders, mock_bot, mock_exists, mock_open
+    ):
+        """Тест показа конкретного убежища - главная проходная"""
+        mock_placeholders.get.return_value = self.shelters_data
+        mock_exists.return_value = True
+        mock_open.return_value.__enter__.return_value = Mock()
+        mock_bot.send_photo = Mock()
+        mock_bot.send_message = Mock()
+
+        from bot.main import show_specific_shelter
+
+        # Вызываем функцию для главной проходной
+        show_specific_shelter(self.chat_id, "🏢 Убежище Главная проходная Ростсельмаш")
+
+        # Проверяем, что отправлено фото и информация
+        mock_bot.send_photo.assert_called_once()
+        mock_bot.send_message.assert_called_once()
+
+        # Проверяем содержимое сообщения
+        args, kwargs = mock_bot.send_message.call_args
+        self.assertIn("Главная проходная Ростсельмаш", args[1])
+        self.assertIn("47.258268", args[1])
+
+    @patch("builtins.open", create=True)
+    @patch("os.path.exists")
+    @patch("bot.main.BOT_TOKEN", "test_token")
+    @patch("bot.main.bot")
+    @patch("bot.main.placeholders")
+    def test_show_specific_shelter_sector_10(
+        self, mock_placeholders, mock_bot, mock_exists, mock_open
+    ):
+        """Тест показа конкретного убежища - участок №10"""
+        mock_placeholders.get.return_value = self.shelters_data
+        mock_exists.return_value = True
+        mock_open.return_value.__enter__.return_value = Mock()
+        mock_bot.send_photo = Mock()
+        mock_bot.send_message = Mock()
+
+        from bot.main import show_specific_shelter
+
+        # Вызываем функцию для участка №10
+        show_specific_shelter(self.chat_id, "🏭 Убежище № 10 (РПРЗ, 12 пролет)")
+
+        # Проверяем, что отправлено фото и информация
+        mock_bot.send_photo.assert_called_once()
+        mock_bot.send_message.assert_called_once()
+
+        # Проверяем содержимое сообщения
+        args, kwargs = mock_bot.send_message.call_args
+        self.assertIn("Убежище № 10", args[1])
+        self.assertIn("47.264452", args[1])
+
+    @patch("bot.main.BOT_TOKEN", "test_token")
+    @patch("bot.main.bot")
+    @patch("bot.main.placeholders")
+    def test_show_shelter_map(self, mock_placeholders, mock_bot):
+        """Тест показа карты убежищ"""
+        mock_placeholders.get.return_value = self.shelters_data
+        mock_bot.send_message = Mock()
+
+        from bot.main import show_shelter_map
+
+        # Вызываем функцию
+        show_shelter_map(self.chat_id)
+
+        # Проверяем, что отправлено сообщение с картой
+        mock_bot.send_message.assert_called_once()
+        args, kwargs = mock_bot.send_message.call_args
+
+        self.assertEqual(args[0], self.chat_id)
+        self.assertIn("🗺️ Местоположения убежищ РПРЗ", args[1])
+        self.assertIn("Показать все убежища на карте", args[1])
+        self.assertEqual(kwargs.get("parse_mode"), "Markdown")
+
+    @patch("bot.main.BOT_TOKEN", "test_token")
+    @patch("bot.main.bot")
+    @patch("bot.main.placeholders")
+    def test_shelter_not_found(self, mock_placeholders, mock_bot):
+        """Тест обработки случая, когда убежище не найдено"""
+        mock_placeholders.get.return_value = []
+        mock_bot.send_message = Mock()
+
+        from bot.main import show_specific_shelter
+
+        # Вызываем функцию с несуществующим убежищем
+        show_specific_shelter(self.chat_id, "🏠 Несуществующее убежище")
+
+        # Проверяем, что отправлена ошибка
+        mock_bot.send_message.assert_called_once()
+        args, kwargs = mock_bot.send_message.call_args
+        self.assertIn("❌ Убежище не найдено", args[1])
+
+
 class TestIntegration(unittest.TestCase):
     """Интеграционные тесты"""
 
