@@ -1,1 +1,1 @@
-web: python run_scheduled_bot.py
+web: python bot/main.py
