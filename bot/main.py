@@ -1300,19 +1300,33 @@ def handle_text(message):
 
     elif user_states.get(chat_id) == "rprz_assistant":
         logger.info(f"🤖 {username} ({chat_id}) задаёт вопрос помощнику")
-        result = handle_rprz_assistant_text(message, placeholders)
-        if isinstance(result, tuple):
-            new_state, response = result
-            user_states[chat_id] = new_state
-            if new_state == "main_menu":
-                bot.set_state(chat_id, BotStates.main_menu)
-                bot.send_message(
-                    chat_id, response, reply_markup=get_main_menu_keyboard()
-                )
-            else:
-                bot.send_message(chat_id, response, reply_markup=get_back_keyboard())
+
+        # Обработка кнопки "Расписание автобусов"
+        if text == "🚌 Расписание автобусов":
+            logger.info(f"🚌 {username} ({chat_id}) запросил расписание автобусов")
+            show_bus_schedule(chat_id)
         else:
-            bot.send_message(chat_id, result, reply_markup=get_back_keyboard())
+            result = handle_rprz_assistant_text(message, placeholders)
+            if isinstance(result, tuple):
+                new_state, response = result
+                user_states[chat_id] = new_state
+                if new_state == "main_menu":
+                    bot.set_state(chat_id, BotStates.main_menu)
+                    bot.send_message(
+                        chat_id, response, reply_markup=get_main_menu_keyboard()
+                    )
+                else:
+                    # Создаем клавиатуру с кнопками для rprz_assistant
+                    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+                    markup.add(types.KeyboardButton("🚌 Расписание автобусов"))
+                    markup.add(types.KeyboardButton("⬅️ Назад"))
+                    bot.send_message(chat_id, response, reply_markup=markup)
+            else:
+                # Создаем клавиатуру с кнопками для rprz_assistant
+                markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+                markup.add(types.KeyboardButton("🚌 Расписание автобусов"))
+                markup.add(types.KeyboardButton("⬅️ Назад"))
+                bot.send_message(chat_id, result, reply_markup=markup)
 
     elif user_states.get(chat_id) == "improvement_suggestion":
         logger.info(f"💡 {username} ({chat_id}) отправляет предложение")
@@ -1419,6 +1433,63 @@ def start_shelter_finder(message):
     )
 
 
+def show_bus_schedule(chat_id: int):
+    """Показывает расписание автобусов"""
+    if not BOT_TOKEN or not bot:
+        logger.warning("BOT_TOKEN не настроен, функция show_bus_schedule недоступна")
+        return
+
+    try:
+        # Отправляем фото расписания
+        photo_path = "assets/images/bus_schedule.jpg"
+        if os.path.exists(photo_path):
+            try:
+                with open(photo_path, "rb") as photo_file:
+                    bot.send_photo(
+                        chat_id,
+                        photo_file,
+                        caption="🚌 Расписание внутризаводского общественного транспорта РПРЗ",
+                    )
+                logger.info(f"✅ Расписание автобусов отправлено пользователю {chat_id}")
+            except Exception as photo_error:
+                logger.error(f"❌ Не удалось отправить фото расписания: {photo_error}")
+                bot.send_message(
+                    chat_id, "❌ Ошибка загрузки фото расписания. Попробуйте позже."
+                )
+                return
+        else:
+            logger.warning(f"⚠️ Файл расписания не найден: {photo_path}")
+            bot.send_message(
+                chat_id, "❌ Расписание временно недоступно. Обратитесь к диспетчеру."
+            )
+            return
+
+        # Добавляем текстовую информацию
+        info_text = (
+            "🚌 Расписание внутризаводского транспорта\n\n"
+            "📍 Основные остановки:\n"
+            "• Главная проходная ДМО\n"
+            "• Комбинат питания\n"
+            "• МСЦ-8\n"
+            "• ДМО (СОК-1)\n\n"
+            "🕐 Режим работы: ежедневно\n"
+            "📞 Диспетчер: +7 (863) 251-XX-XX\n\n"
+            "⚠️ Расписание может меняться - уточняйте у диспетчера"
+        )
+
+        # Создаем клавиатуру с кнопками
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        markup.add(types.KeyboardButton("🚌 Расписание автобусов"))
+        markup.add(types.KeyboardButton("⬅️ Назад"))
+
+        bot.send_message(chat_id, info_text, reply_markup=markup)
+        log_activity(chat_id, "user", "bus_schedule_viewed")
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка показа расписания автобусов: {e}")
+        bot.send_message(chat_id, "❌ Произошла ошибка при загрузке расписания")
+
+
 def start_rprz_assistant(message):
     """Начало работы с помощником РПРЗ"""
     chat_id = message.chat.id
@@ -1439,17 +1510,23 @@ def start_rprz_assistant(message):
         "🏭 Правилам работы на производстве\n"
         "⚠️ Процедурам при ЧС\n"
         "📞 Контактам служб безопасности\n"
-        "🏠 Расположению убежищ\n\n"
+        "🏠 Расположению убежищ\n"
+        "🚌 Расписанию автобусов\n\n"
         "❓ Примеры вопросов:\n"
         "• Где находится ближайшее убежище?\n"
         "• Как действовать при пожаре?\n"
         "• Контакты службы безопасности?\n"
         "• Инструкции по охране труда\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "💬 Задайте ваш вопрос:"
+        "💬 Задайте ваш вопрос или нажмите кнопку:"
     )
 
-    bot.send_message(chat_id, welcome_text, reply_markup=get_back_keyboard())
+    # Создаем клавиатуру с кнопками
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add(types.KeyboardButton("🚌 Расписание автобусов"))
+    markup.add(types.KeyboardButton("⬅️ Назад"))
+
+    bot.send_message(chat_id, welcome_text, reply_markup=markup)
 
 
 def start_improvement_suggestion(message):

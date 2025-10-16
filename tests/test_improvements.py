@@ -620,6 +620,105 @@ class TestShelterButtons(unittest.TestCase):
         self.assertIn("❌ Убежище не найдено", args[1])
 
 
+class TestBusSchedule(unittest.TestCase):
+    """Тесты для функционала расписания автобусов"""
+
+    def setUp(self):
+        """Настройка перед каждым тестом"""
+        self.chat_id = 12345
+
+    @patch("builtins.open", create=True)
+    @patch("os.path.exists")
+    @patch("bot.main.BOT_TOKEN", "test_token")
+    @patch("bot.main.bot")
+    @patch("bot.main.log_activity")
+    def test_show_bus_schedule_success(
+        self, mock_log_activity, mock_bot, mock_exists, mock_open
+    ):
+        """Тест успешного показа расписания автобусов"""
+        mock_exists.return_value = True
+        mock_open.return_value.__enter__.return_value = Mock()
+        mock_bot.send_photo = Mock()
+        mock_bot.send_message = Mock()
+
+        from bot.main import show_bus_schedule
+
+        # Вызываем функцию
+        show_bus_schedule(self.chat_id)
+
+        # Проверяем, что отправлено фото
+        mock_bot.send_photo.assert_called_once()
+        call_args = mock_bot.send_photo.call_args
+        # Проверяем chat_id в позиционных или именованных аргументах
+        if call_args.args:
+            self.assertEqual(call_args.args[0], self.chat_id)
+        if "caption" in call_args.kwargs:
+            self.assertIn("🚌 Расписание внутризаводского", call_args.kwargs["caption"])
+
+        # Проверяем, что отправлена текстовая информация
+        mock_bot.send_message.assert_called_once()
+        message_args, message_kwargs = mock_bot.send_message.call_args
+        self.assertIn("🚌 Расписание внутризаводского транспорта", message_args[1])
+        self.assertIn("Главная проходная ДМО", message_args[1])
+
+        # Проверяем логирование
+        mock_log_activity.assert_called_once()
+
+    @patch("os.path.exists")
+    @patch("bot.main.BOT_TOKEN", "test_token")
+    @patch("bot.main.bot")
+    def test_show_bus_schedule_file_not_found(self, mock_bot, mock_exists):
+        """Тест обработки отсутствия файла расписания"""
+        mock_exists.return_value = False
+        mock_bot.send_message = Mock()
+
+        from bot.main import show_bus_schedule
+
+        # Вызываем функцию
+        show_bus_schedule(self.chat_id)
+
+        # Проверяем, что отправлено сообщение об ошибке
+        mock_bot.send_message.assert_called_once()
+        args, kwargs = mock_bot.send_message.call_args
+        self.assertIn("❌ Расписание временно недоступно", args[1])
+
+    @patch("builtins.open", create=True)
+    @patch("os.path.exists")
+    @patch("bot.main.BOT_TOKEN", "test_token")
+    @patch("bot.main.bot")
+    def test_show_bus_schedule_photo_error(self, mock_bot, mock_exists, mock_open):
+        """Тест обработки ошибки при отправке фото"""
+        mock_exists.return_value = True
+        mock_open.return_value.__enter__.return_value = Mock()
+        mock_bot.send_photo = Mock(side_effect=Exception("Telegram API Error"))
+        mock_bot.send_message = Mock()
+
+        from bot.main import show_bus_schedule
+
+        # Вызываем функцию
+        show_bus_schedule(self.chat_id)
+
+        # Проверяем, что отправлено сообщение об ошибке
+        mock_bot.send_message.assert_called_once()
+        args, kwargs = mock_bot.send_message.call_args
+        self.assertIn("❌ Ошибка загрузки фото расписания", args[1])
+
+    @patch("bot.main.BOT_TOKEN", None)
+    @patch("bot.main.bot", None)
+    def test_show_bus_schedule_no_bot_token(self):
+        """Тест обработки отсутствия BOT_TOKEN"""
+        from bot.main import show_bus_schedule
+
+        # Не должно вызывать исключений
+        try:
+            show_bus_schedule(self.chat_id)
+            result = True
+        except Exception:
+            result = False
+
+        self.assertTrue(result)
+
+
 class TestIntegration(unittest.TestCase):
     """Интеграционные тесты"""
 
