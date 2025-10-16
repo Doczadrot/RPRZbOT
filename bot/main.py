@@ -62,30 +62,22 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Импорт обработчиков
 
 # Импорт системы безопасности
-try:
-    from bot.security import check_user_security, validate_user_file, validate_user_text
+# ТЕСТИРОВАНИЕ: Отключаем все ограничения безопасности
+SECURITY_ENABLED = False
+logger.warning("🧪 РЕЖИМ ТЕСТИРОВАНИЯ: Все ограничения безопасности отключены")
 
-    SECURITY_ENABLED = True
-    logger.info("✅ Модуль безопасности загружен")
-except ImportError:
-    try:
-        from security import check_user_security, validate_user_file, validate_user_text
 
-        SECURITY_ENABLED = True
-        logger.info("✅ Модуль безопасности загружен")
-    except ImportError as e:
-        SECURITY_ENABLED = False
-        logger.warning(f"⚠️ Модуль безопасности не загружен: {e}")
+# Заглушки для функций безопасности (всегда разрешать)
+def check_user_security(user_id, action="general"):
+    return True, None
 
-        # Заглушки для функций безопасности
-        def check_user_security(user_id, action="general"):
-            return True, None
 
-        def validate_user_text(text, user_id):
-            return True, None
+def validate_user_text(text, user_id):
+    return True, None
 
-        def validate_user_file(file_size, file_type, user_id, max_size_mb=20):
-            return True, None
+
+def validate_user_file(file_size, file_type, user_id, max_size_mb=20):
+    return True, None
 
 
 # Импорт системы кэширования
