@@ -247,7 +247,8 @@ def handle_danger_report_text(message, user_data, placeholders):
             ]:
                 return (
                     "danger_report",
-                    "❌ Пожалуйста, укажите реальное местоположение инцидента текстом или отправьте геолокацию. Кнопки не принимаются для поля 'Место'.",
+                    "❌ Пожалуйста, укажите реальное местоположение инцидента "
+                    "текстом или отправьте геолокацию. Кнопки не принимаются для поля 'Место'.",
                 )
 
             # Если пользователь вводит текст, считаем это указанием
@@ -856,6 +857,31 @@ def handle_improvement_suggestion_text(message, placeholders, user_data):
     save_enhanced_suggestion(chat_id, suggestion_data)
     log_suggestion(chat_id, suggestion_data)
     log_activity(chat_id, username, "suggestion_submitted", text[:50])
+
+    # Отправляем уведомление администратору
+    try:
+        admin_chat_id = os.getenv("ADMIN_CHAT_ID")
+        if admin_chat_id and bot_instance:
+            current_time = datetime.now()
+
+            admin_text = "💡 НОВОЕ ПРЕДЛОЖЕНИЕ ПО УЛУЧШЕНИЮ\n\n"
+            admin_text += f"👤 Пользователь: {username} (ID: {chat_id})\n"
+            admin_text += f"📝 Предложение: {text}\n"
+            admin_text += f"🕐 Время: {current_time.strftime('%d.%m.%Y %H:%M:%S')} МСК"
+
+            logger.info(f"Отправка предложения админу в Telegram: {text[:50]}")
+            bot_instance.send_message(admin_chat_id, admin_text)
+            logger.info("✅ Предложение отправлено админу в Telegram")
+
+        elif not admin_chat_id:
+            logger.warning("⚠️ ADMIN_CHAT_ID не настроен для предложений")
+        elif not bot_instance:
+            logger.warning(
+                "⚠️ Объект bot не инициализирован для отправки предложений админу"
+            )
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка отправки предложения админу: {e}")
 
     response_text = (
         "✅ Ваше предложение отправлено разработчикам!\n\n"

@@ -8,12 +8,16 @@ import sys
 import tempfile
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 # Добавляем путь к модулям бота
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "bot"))
 
-from bot.cache import SimpleCache, cache_user_data, cached, get_cached_user_data
+try:
+    from bot.cache import SimpleCache, cache_user_data, cached, get_cached_user_data
+except ImportError:
+    # Альтернативный импорт если модуль не найден
+    SimpleCache = None
 
 
 class TestCacheSystem(unittest.TestCase):
@@ -224,6 +228,229 @@ class TestErrorHandling(unittest.TestCase):
             result = False
 
         self.assertTrue(result)
+
+
+class TestAdminNotifications(unittest.TestCase):
+    """Тесты для уведомлений администратора о предложениях"""
+
+    def setUp(self):
+        """Настройка перед каждым тестом"""
+        # Создаем mock объекты
+        self.mock_message = Mock()
+        self.mock_message.chat.id = 12345
+        self.mock_message.from_user.username = "testuser"
+        self.mock_message.text = "Тестовое предложение по улучшению"
+
+        self.placeholders = {}
+        self.user_data = {}
+
+        # Мокаем временные файлы для логов
+        self.temp_dir = tempfile.mkdtemp()
+        self.suggestions_file = os.path.join(self.temp_dir, "enhanced_suggestions.json")
+
+    def tearDown(self):
+        """Очистка после каждого теста"""
+        import shutil
+
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    @patch.dict(os.environ, {"ADMIN_CHAT_ID": "987654321"})
+    @patch("bot.handlers.bot_instance")
+    @patch("bot.handlers.save_enhanced_suggestion")
+    @patch("bot.handlers.log_suggestion")
+    @patch("bot.handlers.log_activity")
+    @patch("bot.handlers.logger")
+    def test_admin_notification_success(
+        self,
+        mock_logger,
+        mock_log_activity,
+        mock_log_suggestion,
+        mock_save_enhanced,
+        mock_bot,
+    ):
+        """Тест успешной отправки уведомления администратору"""
+        # Настраиваем mock bot
+        mock_bot.send_message = Mock()
+
+        # Импортируем функцию для тестирования
+        from bot.handlers import handle_improvement_suggestion_text
+
+        # Вызываем функцию
+        result = handle_improvement_suggestion_text(
+            self.mock_message, self.placeholders, self.user_data
+        )
+
+        # Проверяем результат
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(result[0], "main_menu")
+        self.assertIn("✅ Ваше предложение отправлено", result[1]["text"])
+
+        # Проверяем, что бот отправил сообщение админу
+        mock_bot.send_message.assert_called_once()
+        args, kwargs = mock_bot.send_message.call_args
+        self.assertEqual(args[0], "987654321")  # ADMIN_CHAT_ID
+        self.assertIn("💡 НОВОЕ ПРЕДЛОЖЕНИЕ ПО УЛУЧШЕНИЮ", args[1])
+        self.assertIn("testuser", args[1])
+        self.assertIn("Тестовое предложение по улучшению", args[1])
+
+        # Проверяем, что логи вызваны
+        mock_log_activity.assert_called_once()
+        mock_save_enhanced.assert_called_once()
+        mock_log_suggestion.assert_called_once()
+
+        # Проверяем успешное логирование
+        mock_logger.info.assert_called()
+
+    @patch.dict(os.environ, {})  # Убираем ADMIN_CHAT_ID
+    @patch("bot.handlers.bot_instance")
+    @patch("bot.handlers.save_enhanced_suggestion")
+    @patch("bot.handlers.log_suggestion")
+    @patch("bot.handlers.log_activity")
+    @patch("bot.handlers.logger")
+    def test_admin_notification_no_admin_id(
+        self,
+        mock_logger,
+        mock_log_activity,
+        mock_log_suggestion,
+        mock_save_enhanced,
+        mock_bot,
+    ):
+        """Тест обработки отсутствия ADMIN_CHAT_ID"""
+        from bot.handlers import handle_improvement_suggestion_text
+
+        # Вызываем функцию
+        result = handle_improvement_suggestion_text(
+            self.mock_message, self.placeholders, self.user_data
+        )
+
+        # Проверяем, что функция работает без ошибок
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(result[0], "main_menu")
+
+        # Проверяем предупреждение о недоступном ADMIN_CHAT_ID
+        mock_logger.warning.assert_called_with(
+            "⚠️ ADMIN_CHAT_ID не настроен для предложений"
+        )
+
+        # Проверяем, что бот не пытался отправить сообщение
+        mock_bot.send_message.assert_not_called()
+
+    @patch.dict(os.environ, {"ADMIN_CHAT_ID": "987654321"})
+    @patch("bot.handlers.bot_instance", None)  # Убираем bot_instance
+    @patch("bot.handlers.save_enhanced_suggestion")
+    @patch("bot.handlers.log_suggestion")
+    @patch("bot.handlers.log_activity")
+    @patch("bot.handlers.logger")
+    def test_admin_notification_no_bot_instance(
+        self, mock_logger, mock_log_activity, mock_log_suggestion, mock_save_enhanced
+    ):
+        """Тест обработки отсутствия bot_instance"""
+        from bot.handlers import handle_improvement_suggestion_text
+
+        # Вызываем функцию
+        result = handle_improvement_suggestion_text(
+            self.mock_message, self.placeholders, self.user_data
+        )
+
+        # Проверяем, что функция работает без ошибок
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(result[0], "main_menu")
+
+        # Проверяем предупреждение о недоступном bot_instance
+        mock_logger.warning.assert_called_with(
+            "⚠️ Объект bot не инициализирован для отправки предложений админу"
+        )
+
+    @patch.dict(os.environ, {"ADMIN_CHAT_ID": "987654321"})
+    @patch("bot.handlers.bot_instance")
+    @patch("bot.handlers.save_enhanced_suggestion")
+    @patch("bot.handlers.log_suggestion")
+    @patch("bot.handlers.log_activity")
+    @patch("bot.handlers.logger")
+    def test_admin_notification_exception(
+        self,
+        mock_logger,
+        mock_log_activity,
+        mock_log_suggestion,
+        mock_save_enhanced,
+        mock_bot,
+    ):
+        """Тест обработки ошибок при отправке администратору"""
+        # Настраиваем mock bot для выброса исключения
+        mock_bot.send_message = Mock(side_effect=Exception("Telegram API Error"))
+
+        from bot.handlers import handle_improvement_suggestion_text
+
+        # Вызываем функцию
+        result = handle_improvement_suggestion_text(
+            self.mock_message, self.placeholders, self.user_data
+        )
+
+        # Проверяем, что функция работает несмотря на ошибку
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(result[0], "main_menu")
+
+        # Проверяем, что ошибка залогирована
+        mock_logger.error.assert_called()
+        error_call_args = mock_logger.error.call_args[0][0]
+        self.assertIn("❌ Ошибка отправки предложения админу:", error_call_args)
+
+    def test_short_suggestion_rejection(self):
+        """Тест отклонения слишком короткого предложения"""
+        from bot.handlers import handle_improvement_suggestion_text
+
+        # Создаем сообщение с коротким текстом
+        short_message = Mock()
+        short_message.chat.id = 12345
+        short_message.from_user.username = "testuser"
+        short_message.text = "короткий"  # Меньше 10 символов
+
+        result = handle_improvement_suggestion_text(
+            short_message, self.placeholders, self.user_data
+        )
+
+        # Проверяем отклонение
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(result[0], "improvement_suggestion")
+        self.assertIn("❌ Предложение слишком короткое!", result[1])
+
+    def test_long_suggestion_rejection(self):
+        """Тест отклонения слишком длинного предложения"""
+        from bot.handlers import handle_improvement_suggestion_text
+
+        # Создаем сообщение с длинным текстом
+        long_message = Mock()
+        long_message.chat.id = 12345
+        long_message.from_user.username = "testuser"
+        long_message.text = "х" * 1001  # Больше 1000 символов
+
+        result = handle_improvement_suggestion_text(
+            long_message, self.placeholders, self.user_data
+        )
+
+        # Проверяем отклонение
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(result[0], "improvement_suggestion")
+        self.assertIn("❌ Предложение слишком длинное!", result[1])
+
+    def test_back_button_handling(self):
+        """Тест обработки кнопки 'Назад'"""
+        from bot.handlers import handle_improvement_suggestion_text
+
+        # Создаем сообщение с кнопкой назад
+        back_message = Mock()
+        back_message.chat.id = 12345
+        back_message.from_user.username = "testuser"
+        back_message.text = "⬅️ Назад"
+
+        result = handle_improvement_suggestion_text(
+            back_message, self.placeholders, self.user_data
+        )
+
+        # Проверяем переход в главное меню
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(result[0], "main_menu")
+        self.assertIsNone(result[1])
 
 
 class TestIntegration(unittest.TestCase):
