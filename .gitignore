@@ -110,15 +110,11 @@ logs/*.log
 logs/*.csv
 logs/*.json
 
-# Assets (media files) - чувствительные данные
-assets/images/shelter_*.jpg
-assets/images/shelter_*.png
+# Assets (media files) - PDF документы не нужны в git
 assets/pdfs/
-bus_schedule.jpg
 
-# Конфигурационные файлы с чувствительными данными
-configs/data_placeholders.json
-configs/*.json
+# Фото убежищ и расписание автобусов - теперь в git для Railway
+# НЕ игнорируются: shelter_*.jpg, bus_schedule.jpg, data_placeholders.json
 
 # Process files
 bot.lock

@@ -677,7 +677,7 @@ def show_specific_shelter(chat_id: int, shelter_name: str):
         return
 
     try:
-        # Отправляем изображение убежища
+        # Отправляем основное изображение убежища
         photo_path = selected_shelter.get("photo_path", "")
         if photo_path and os.path.exists(photo_path):
             try:
@@ -690,6 +690,34 @@ def show_specific_shelter(chat_id: int, shelter_name: str):
             except Exception as photo_error:
                 logger.warning(f"Не удалось отправить фото убежища: {photo_error}")
 
+        # Для убежища №10 - отправляем дополнительные фото
+        if "№ 10" in selected_shelter.get("name", ""):
+            # Фото входа с 12 пролета
+            entrance_path = "assets/images/shelter_2_entrance.jpg"
+            if os.path.exists(entrance_path):
+                try:
+                    with open(entrance_path, "rb") as entrance_file:
+                        bot.send_photo(
+                            chat_id,
+                            entrance_file,
+                            caption="🚪 Вход в убежище с 12 пролета",
+                        )
+                except Exception as e:
+                    logger.warning(f"Не удалось отправить фото входа: {e}")
+
+            # Схема расположения убежища
+            map_path = "assets/images/shelter_2_map.png"
+            if os.path.exists(map_path):
+                try:
+                    with open(map_path, "rb") as map_file:
+                        bot.send_photo(
+                            chat_id,
+                            map_file,
+                            caption="🗺️ Схема расположения убежища № 10 на территории РПРЗ",
+                        )
+                except Exception as e:
+                    logger.warning(f"Не удалось отправить схему: {e}")
+
         # Отправляем подробную информацию об убежище
         shelter_text = (
             f"🏠 {selected_shelter['name']}\n\n"
@@ -697,7 +725,7 @@ def show_specific_shelter(chat_id: int, shelter_name: str):
             f"📍 Координаты: {selected_shelter['lat']}, {selected_shelter['lon']}\n"
             f"📞 Контакт: {selected_shelter.get('contact_phone', 'Не указан')}\n"
             f"👤 Ответственный: {selected_shelter.get('responsible_person', 'Не указан')}\n\n"
-            f"🗺️ Показать на карте: {selected_shelter.get('map_link', 'Недоступна')}"
+            f"🗺️ Ссылка на Яндекс.Карты: {selected_shelter.get('map_link', 'Недоступна')}"
         )
 
         # Создаем кнопки с действиями для убежища
