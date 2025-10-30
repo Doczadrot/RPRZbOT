@@ -5,7 +5,7 @@
 Создайте файл `.env` в корне проекта со следующим содержимым:
 
 ```env
-BOT_TOKEN=7729467094:AAE45THQpWdxcf_kITJ_z6ct4cKkZFNz0IQ
+BOT_TOKEN=YOUR_TOKEN
 ADMIN_CHAT_ID=YOUR_ADMIN_CHAT_ID
 EMAIL_USER=your-email@domain.com
 EMAIL_PASS=your-password
@@ -25,7 +25,7 @@ python bot/main_refactored.py
 
 ## 📋 Что нужно настроить
 
-1. **BOT_TOKEN** ✅ - Уже предоставлен
+1. **BOT_TOKEN** — получите у @BotFather и вставьте в `.env`
 2. **ADMIN_CHAT_ID** - ID чата администратора для получения сообщений об опасности
 3. **EMAIL_USER** - Email для уведомлений (опционально)
 4. **EMAIL_PASS** - Пароль email (опционально)
