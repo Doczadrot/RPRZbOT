@@ -2,3 +2,5 @@ python-telegram-bot>=20.0
 python-dotenv
 geopy
 pdfplumber
+pytest>=8.2
+pytest-asyncio>=1.2

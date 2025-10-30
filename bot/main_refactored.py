@@ -4,6 +4,8 @@
 import os
 import sys
 import logging
+from datetime import datetime, time
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -76,10 +78,33 @@ class BotApplication:
             "Выберите нужную функцию:"
         )
         
-        await update.message.reply_text(
-            welcome_text,
-            reply_markup=self.keyboard_factory.create_main_menu()
+        # Создаем клавиатуру напрямую для гарантии
+        keyboard = [
+            ['🚨❗ Сообщите об опасности'],
+            ['🏠🛡️ Ближайшее укрытие'],
+            ['🧑‍🏫📚 Консультант по безопасности РПРЗ']
+        ]
+        
+        from telegram import ReplyKeyboardMarkup
+        reply_markup = ReplyKeyboardMarkup(
+            keyboard, 
+            resize_keyboard=True, 
+            one_time_keyboard=False,
+            input_field_placeholder="Выберите функцию"
         )
+        
+        logger.info(f"Создана клавиатура напрямую: {reply_markup}")
+        
+        try:
+            await update.message.reply_text(
+                welcome_text,
+                reply_markup=reply_markup
+            )
+            logger.info("✅ Команда /start обработана, клавиатура отправлена успешно")
+        except Exception as e:
+            logger.error(f"❌ Ошибка отправки клавиатуры: {e}")
+            # Отправляем без клавиатуры
+            await update.message.reply_text(welcome_text)
     
     async def my_history_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Обработчик команды /my_history"""
@@ -293,6 +318,18 @@ class BotApplication:
             reply_markup=self.keyboard_factory.create_main_menu()
         )
     
+    async def error_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Обработчик ошибок"""
+        logger.error(f"Ошибка при обработке обновления: {context.error}")
+        if update and update.effective_message:
+            try:
+                await update.effective_message.reply_text(
+                    "❌ Произошла ошибка. Попробуйте позже.",
+                    reply_markup=self.keyboard_factory.create_main_menu()
+                )
+            except:
+                pass
+    
     def run(self):
         """Запустить бота"""
         # Получаем токен бота
@@ -300,6 +337,25 @@ class BotApplication:
         if not bot_token:
             logger.error("BOT_TOKEN не найден в переменных окружения")
             return
+        
+        # Проверяем рабочие часы по МСК (07:00–20:00)
+        disable_hours = os.getenv("DISABLE_WORKING_HOURS", "0") == "1"
+        if not disable_hours:
+            try:
+                now_utc = datetime.utcnow().replace(tzinfo=ZoneInfo("UTC"))
+                now_msk = now_utc.astimezone(ZoneInfo("Europe/Moscow"))
+                start_msk = time(7, 0)
+                end_msk = time(20, 0)
+                within_hours = start_msk <= now_msk.time() <= end_msk
+                logger.info(
+                    f"🕐 Проверка рабочего времени: сейчас {now_msk.strftime('%Y-%m-%d %H:%M:%S')} МСК; "
+                    f"допустимо {start_msk.strftime('%H:%M')}-{end_msk.strftime('%H:%M')}"
+                )
+                if not within_hours:
+                    logger.warning("⏰ Нерабочее время! Бот не запускается вне 07:00–20:00 МСК. Установите DISABLE_WORKING_HOURS=1 для принудительного запуска.")
+                    return
+            except Exception as e:
+                logger.error(f"Ошибка проверки рабочего времени: {e}. Продолжаем запуск по умолчанию.")
         
         # Создаем приложение
         application = Application.builder().token(bot_token).build()
@@ -310,6 +366,9 @@ class BotApplication:
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
         application.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, self.handle_media))
         application.add_handler(MessageHandler(filters.LOCATION, self.handle_location))
+        
+        # Добавляем обработчик ошибок
+        application.add_error_handler(self.error_handler)
         
         # Запускаем бота
         logger.info("Запуск рефакторенного бота...")

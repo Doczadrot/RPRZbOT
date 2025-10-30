@@ -4,6 +4,7 @@
 import os
 import sys
 import asyncio
+import pytest
 from unittest.mock import Mock, AsyncMock
 from datetime import datetime
 
@@ -61,6 +62,7 @@ class MockContext:
         self.bot_data = {'admin_chat_id': 'ADMIN_ID_PLACEHOLDER'}
 
 
+@pytest.mark.asyncio
 async def test_start_command():
     """Тест команды /start"""
     print("🧪 Тестируем команду /start...")
@@ -76,6 +78,7 @@ async def test_start_command():
     print("✅ Команда /start работает")
 
 
+@pytest.mark.asyncio
 async def test_danger_report_flow():
     """Тест полного потока сообщения об опасности"""
     print("🧪 Тестируем поток 'Сообщите об опасности'...")
@@ -109,6 +112,7 @@ async def test_danger_report_flow():
     print("✅ Шаг 5: Отправка сообщения")
 
 
+@pytest.mark.asyncio
 async def test_shelter_finder():
     """Тест поиска убежищ"""
     print("🧪 Тестируем поиск убежищ...")
@@ -121,6 +125,7 @@ async def test_shelter_finder():
     print("✅ Поиск убежищ работает")
 
 
+@pytest.mark.asyncio
 async def test_consultant():
     """Тест консультанта по безопасности"""
     print("🧪 Тестируем консультанта по безопасности...")
@@ -133,6 +138,7 @@ async def test_consultant():
     print("✅ Консультант по безопасности работает")
 
 
+@pytest.mark.asyncio
 async def test_history_command():
     """Тест команды /my_history"""
     print("🧪 Тестируем команду /my_history...")
@@ -145,6 +151,7 @@ async def test_history_command():
     print("✅ Команда /my_history работает")
 
 
+@pytest.mark.asyncio
 async def test_media_handling():
     """Тест обработки медиафайлов"""
     print("🧪 Тестируем обработку медиафайлов...")
@@ -176,6 +183,7 @@ async def test_media_handling():
     print("✅ Обработка видео работает")
 
 
+@pytest.mark.asyncio
 async def test_location_handling():
     """Тест обработки геолокации"""
     print("🧪 Тестируем обработку геолокации...")
@@ -194,6 +202,7 @@ async def test_location_handling():
     print("✅ Обработка геолокации работает")
 
 
+@pytest.mark.asyncio
 async def test_spam_protection():
     """Тест защиты от спама"""
     print("🧪 Тестируем защиту от спама...")
@@ -215,6 +224,7 @@ async def test_spam_protection():
     print("✅ Защита от спама работает")
 
 
+@pytest.mark.asyncio
 async def test_utilities():
     """Тест утилит"""
     print("🧪 Тестируем утилиты...")
