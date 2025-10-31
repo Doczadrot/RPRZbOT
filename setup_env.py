@@ -16,7 +16,7 @@ def create_env_file():
             return
     
     # Содержимое .env файла
-    env_content = """BOT_TOKEN=7729467094:AAE45THQpWdxcf_kITJ_z6ct4cKkZFNz0IQ
+    env_content = """BOT_TOKEN=YOUR_TOKEN
 ADMIN_CHAT_ID=ADMIN_ID_PLACEHOLDER
 EMAIL_USER=example@domain.com
 EMAIL_PASS=password123

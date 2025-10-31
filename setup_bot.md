@@ -5,7 +5,7 @@
 Создайте файл `.env` в корне проекта со следующим содержимым:
 
 ```env
-BOT_TOKEN=7729467094:AAE45THQpWdxcf_kITJ_z6ct4cKkZFNz0IQ
+BOT_TOKEN=YOUR_TOKEN
 ADMIN_CHAT_ID=YOUR_ADMIN_CHAT_ID
 EMAIL_USER=your-email@domain.com
 EMAIL_PASS=your-password
