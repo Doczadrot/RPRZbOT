@@ -5,6 +5,7 @@ import os
 import sys
 import logging
 from datetime import datetime
+from pathlib import Path
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -26,14 +27,22 @@ from bot.handlers.danger_report_handler import DangerReportHandler
 
 load_dotenv()
 
+# Определяем корневую директорию проекта (где находится bot/)
+# Это гарантирует, что logs/ будет создана в правильном месте
+# В Railway контейнере: /app/bot/main_webhook.py -> BASE_DIR = /app
+BASE_DIR = Path(__file__).parent.parent
+LOGS_DIR = BASE_DIR / 'logs'
+LOG_FILE = LOGS_DIR / 'app.log'
+
 # Создаем директорию для логов перед настройкой логирования
-os.makedirs('logs', exist_ok=True)
+# Используем абсолютный путь для надежности в контейнерах
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO,
     handlers=[
-        logging.FileHandler('logs/app.log', encoding='utf-8'),
+        logging.FileHandler(str(LOG_FILE), encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
