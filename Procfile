@@ -1,2 +1,2 @@
-web: python bot/main_webhook.py
+worker: python bot/main_refactored.py
 

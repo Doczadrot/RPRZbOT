@@ -341,21 +341,21 @@ class BotApplication:
             logger.error("BOT_TOKEN не найден в переменных окружения")
             return
         
-        # Проверяем рабочие часы по МСК (07:00–20:00)
+        # Проверяем рабочие часы по МСК (07:00–19:00)
         disable_hours = os.getenv("DISABLE_WORKING_HOURS", "0") == "1"
         if not disable_hours:
             try:
                 now_utc = datetime.utcnow().replace(tzinfo=ZoneInfo("UTC"))
                 now_msk = now_utc.astimezone(ZoneInfo("Europe/Moscow"))
                 start_msk = time(7, 0)
-                end_msk = time(20, 0)
+                end_msk = time(19, 0)
                 within_hours = start_msk <= now_msk.time() <= end_msk
                 logger.info(
                     f"🕐 Проверка рабочего времени: сейчас {now_msk.strftime('%Y-%m-%d %H:%M:%S')} МСК; "
                     f"допустимо {start_msk.strftime('%H:%M')}-{end_msk.strftime('%H:%M')}"
                 )
                 if not within_hours:
-                    logger.warning("⏰ Нерабочее время! Бот не запускается вне 07:00–20:00 МСК. Установите DISABLE_WORKING_HOURS=1 для принудительного запуска.")
+                    logger.warning("⏰ Нерабочее время! Бот не запускается вне 07:00–19:00 МСК. Установите DISABLE_WORKING_HOURS=1 для принудительного запуска.")
                     return
             except Exception as e:
                 logger.error(f"Ошибка проверки рабочего времени: {e}. Продолжаем запуск по умолчанию.")
