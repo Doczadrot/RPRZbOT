@@ -32,6 +32,9 @@ from bot.handlers.danger_report_handler import DangerReportHandler
 # Загружаем переменные окружения
 load_dotenv()
 
+# Создаем директорию для логов перед настройкой логирования
+os.makedirs('logs', exist_ok=True)
+
 # Настройка логирования
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

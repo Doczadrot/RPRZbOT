@@ -26,6 +26,9 @@ from bot.handlers.danger_report_handler import DangerReportHandler
 
 load_dotenv()
 
+# Создаем директорию для логов перед настройкой логирования
+os.makedirs('logs', exist_ok=True)
+
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO,
@@ -259,7 +262,6 @@ def setup_webhook():
 if __name__ == '__main__':
     BOT_START_TIME = datetime.now()
     
-    os.makedirs('logs', exist_ok=True)
     logger.info("🚀 Запуск webhook режима (serverless)")
     logger.info(f"⏰ Время запуска: {BOT_START_TIME.strftime('%Y-%m-%d %H:%M:%S')}")
     

@@ -26,7 +26,9 @@ class FileManager(IFileManager):
         """Сохранить JSON файл"""
         try:
             # Создаем директорию, если не существует
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            dir_path = os.path.dirname(file_path)
+            if dir_path:  # Проверяем, что путь содержит директорию
+                os.makedirs(dir_path, exist_ok=True)
             
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
