@@ -12,6 +12,6 @@ COPY . .
 # Создаем директорию для логов
 RUN mkdir -p logs
 
-# Запускаем бота
-CMD ["python", "bot/main_refactored.py"]
+# Запускаем бота в webhook режиме (serverless)
+CMD ["python", "bot/main_webhook.py"]
 
