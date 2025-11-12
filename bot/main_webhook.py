@@ -257,7 +257,6 @@ def setup_webhook():
 
 
 if __name__ == '__main__':
-    global BOT_START_TIME
     BOT_START_TIME = datetime.now()
     
     os.makedirs('logs', exist_ok=True)
