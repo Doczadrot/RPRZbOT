@@ -236,35 +236,66 @@ def setup_webhook():
         logger.error("BOT_TOKEN не найден")
         return False
     
+    # Инициализируем бота перед установкой webhook
+    asyncio.run(bot_app.initialize())
+    
     # Пытаемся получить webhook URL из переменных окружения
     webhook_url = os.getenv('WEBHOOK_URL')
     
     # Если WEBHOOK_URL не установлен, пытаемся использовать Railway переменные
     if not webhook_url:
-        railway_public_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN')
+        # Проверяем различные варианты переменных Railway
+        railway_public_domain = (
+            os.getenv('RAILWAY_PUBLIC_DOMAIN') or
+            os.getenv('RAILWAY_STATIC_URL') or
+            os.getenv('PUBLIC_DOMAIN') or
+            os.getenv('RAILWAY_DOMAIN')
+        )
+        
         if railway_public_domain:
-            webhook_url = f"https://{railway_public_domain}/webhook"
-            logger.info(f"Используется Railway домен: {webhook_url}")
+            # Убираем протокол, если он есть
+            domain = railway_public_domain.replace('https://', '').replace('http://', '').strip('/')
+            webhook_url = f"https://{domain}/webhook"
+            logger.info(f"🔗 Используется Railway домен: {webhook_url}")
         else:
-            # Для локальной разработки можно пропустить установку webhook
-            logger.warning("WEBHOOK_URL не найден, пропускаем установку webhook (локальная разработка?)")
-            asyncio.run(bot_app.initialize())
-            return True
-    
-    asyncio.run(bot_app.initialize())
+            # Логируем все доступные переменные окружения для отладки (без секретов)
+            env_vars = [k for k in os.environ.keys() if 'RAILWAY' in k or 'DOMAIN' in k or 'URL' in k]
+            logger.warning(f"⚠️ WEBHOOK_URL не найден. Доступные переменные: {', '.join(env_vars) if env_vars else 'нет'}")
+            logger.warning("⚠️ Для работы webhook необходимо:")
+            logger.warning("   1. Настроить публичный домен в Railway Dashboard → Settings → Networking")
+            logger.warning("   2. Или установить переменную WEBHOOK_URL вручную")
+            logger.warning("   3. Или установить переменную RAILWAY_PUBLIC_DOMAIN")
+            logger.error("❌ Webhook не может быть установлен без URL. Бот не будет получать обновления!")
+            return False
     
     try:
+        # Проверяем текущий webhook
+        check_url = f"https://api.telegram.org/bot{bot_token}/getWebhookInfo"
+        check_response = requests.get(check_url)
+        if check_response.status_code == 200:
+            webhook_info = check_response.json()
+            if webhook_info.get('result', {}).get('url'):
+                logger.info(f"📋 Текущий webhook: {webhook_info['result']['url']}")
+        
+        # Устанавливаем новый webhook
         url = f"https://api.telegram.org/bot{bot_token}/setWebhook"
         response = requests.post(url, json={'url': webhook_url})
         
         if response.status_code == 200:
-            logger.info(f"✅ Webhook установлен: {webhook_url}")
-            return True
+            result = response.json()
+            if result.get('ok'):
+                logger.info(f"✅ Webhook успешно установлен: {webhook_url}")
+                logger.info(f"📊 Результат: {result.get('description', 'OK')}")
+                return True
+            else:
+                logger.error(f"❌ Ошибка установки webhook: {result.get('description', 'Unknown error')}")
+                return False
         else:
-            logger.error(f"❌ Ошибка webhook: {response.text}")
+            logger.error(f"❌ HTTP ошибка при установке webhook: {response.status_code}")
+            logger.error(f"📄 Ответ: {response.text}")
             return False
     except Exception as e:
-        logger.error(f"❌ Ошибка webhook: {e}")
+        logger.error(f"❌ Исключение при установке webhook: {e}", exc_info=True)
         return False
 
 
@@ -274,10 +305,30 @@ if __name__ == '__main__':
     logger.info("🚀 Запуск webhook режима (serverless)")
     logger.info(f"⏰ Время запуска: {BOT_START_TIME.strftime('%Y-%m-%d %H:%M:%S')}")
     
-    if setup_webhook():
+    # Пытаемся установить webhook
+    webhook_setup_success = setup_webhook()
+    
+    if webhook_setup_success:
         port = int(os.getenv('PORT', 8080))
-        logger.info(f"🌐 Flask на порту {port}")
+        logger.info(f"🌐 Flask запускается на порту {port}")
         logger.info(f"✅ Бот запущен и работает с {BOT_START_TIME.strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info("📡 Webhook настроен, бот готов принимать обновления от Telegram")
         app.run(host='0.0.0.0', port=port, debug=False)
     else:
-        logger.error("❌ Не удалось настроить webhook")
+        logger.error("❌ Не удалось настроить webhook!")
+        logger.error("⚠️ Бот запущен, но НЕ будет получать обновления от Telegram!")
+        logger.error("🔧 Решение:")
+        logger.error("   1. Откройте Railway Dashboard → ваш сервис → Settings")
+        logger.error("   2. Перейдите в раздел 'Networking' или 'Public Domain'")
+        logger.error("   3. Нажмите 'Generate Domain' или настройте публичный домен")
+        logger.error("   4. После создания домена Railway автоматически установит переменную RAILWAY_PUBLIC_DOMAIN")
+        logger.error("   5. Перезапустите сервис")
+        logger.error("   ИЛИ")
+        logger.error("   6. Установите переменную WEBHOOK_URL вручную в Railway → Variables")
+        logger.error("      Формат: https://your-app.railway.app/webhook")
+        
+        # Все равно запускаем Flask, чтобы было видно, что сервис работает
+        # Но бот не будет получать обновления
+        port = int(os.getenv('PORT', 8080))
+        logger.warning(f"⚠️ Flask запускается на порту {port}, но webhook не настроен")
+        app.run(host='0.0.0.0', port=port, debug=False)
