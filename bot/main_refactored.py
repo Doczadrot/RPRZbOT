@@ -341,8 +341,8 @@ class BotApplication:
             logger.error("BOT_TOKEN не найден в переменных окружения")
             return
         
-        # Проверяем рабочие часы по МСК (07:00–19:00)
-        disable_hours = os.getenv("DISABLE_WORKING_HOURS", "0") == "1"
+        # Проверяем рабочие часы по МСК (07:00–19:00) - ВРЕМЕННО ОТКЛЮЧЕНО
+        disable_hours = os.getenv("DISABLE_WORKING_HOURS", "1") == "1"  # По умолчанию отключено
         if not disable_hours:
             try:
                 now_utc = datetime.utcnow().replace(tzinfo=ZoneInfo("UTC"))
