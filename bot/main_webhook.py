@@ -261,11 +261,27 @@ def setup_webhook():
             # Логируем все доступные переменные окружения для отладки (без секретов)
             env_vars = [k for k in os.environ.keys() if 'RAILWAY' in k or 'DOMAIN' in k or 'URL' in k]
             logger.warning(f"⚠️ WEBHOOK_URL не найден. Доступные переменные: {', '.join(env_vars) if env_vars else 'нет'}")
-            logger.warning("⚠️ Для работы webhook необходимо:")
-            logger.warning("   1. Настроить публичный домен в Railway Dashboard → Settings → Networking")
-            logger.warning("   2. Или установить переменную WEBHOOK_URL вручную")
-            logger.warning("   3. Или установить переменную RAILWAY_PUBLIC_DOMAIN")
+            
+            # Пытаемся получить информацию о сервисе из переменных Railway
+            service_name = os.getenv('RAILWAY_SERVICE_NAME', 'worker')
+            project_name = os.getenv('RAILWAY_PROJECT_NAME', '')
+            
             logger.error("❌ Webhook не может быть установлен без URL. Бот не будет получать обновления!")
+            logger.error("")
+            logger.error("🔧 РЕШЕНИЕ:")
+            logger.error("   1. Откройте Railway Dashboard → ваш сервис → Settings → Variables")
+            logger.error("   2. Нажмите '+ New' для добавления новой переменной")
+            logger.error("   3. Имя переменной: WEBHOOK_URL")
+            logger.error("   4. Значение переменной: https://worker-production-40f5.up.railway.app/webhook")
+            logger.error("      (Замените на ваш публичный домен из Settings → Networking → Public Networking)")
+            logger.error("   5. Сохраните переменную")
+            logger.error("   6. Перезапустите сервис (Deployments → Redeploy)")
+            logger.error("")
+            logger.error("📋 Информация о вашем домене:")
+            logger.error("   - Откройте Settings → Networking → Public Networking")
+            logger.error("   - Найдите ваш публичный домен (например: worker-production-40f5.up.railway.app)")
+            logger.error("   - Используйте этот домен в формате: https://ВАШ-ДОМЕН/webhook")
+            logger.error("")
             return False
     
     try:
