@@ -4,11 +4,13 @@ Webhook версия для serverless Railway
 import os
 import sys
 import logging
+import threading
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.error import TelegramError
 from flask import Flask, request
 import asyncio
 
@@ -50,6 +52,51 @@ logger = logging.getLogger(__name__)
 
 # Глобальная переменная для отслеживания времени запуска
 BOT_START_TIME = None
+
+# Глобальный event loop для обработки async операций
+_loop = None
+_loop_thread = None
+
+def get_event_loop():
+    """Получить или создать глобальный event loop"""
+    global _loop, _loop_thread
+    
+    if _loop is None or _loop.is_closed():
+        _loop = asyncio.new_event_loop()
+        
+        def run_loop():
+            asyncio.set_event_loop(_loop)
+            try:
+                _loop.run_forever()
+            except Exception as e:
+                logger.error(f"Критическая ошибка в event loop: {e}", exc_info=True)
+            finally:
+                try:
+                    _loop.close()
+                except Exception:
+                    pass
+        
+        _loop_thread = threading.Thread(target=run_loop, daemon=True, name="TelegramBotEventLoop")
+        _loop_thread.start()
+        # Даем время на запуск event loop
+        import time
+        time.sleep(0.1)
+        logger.info("✅ Глобальный event loop создан и запущен в отдельном потоке")
+    
+    return _loop
+
+def run_async(coro):
+    """Запустить async функцию в глобальном event loop и дождаться результата"""
+    loop = get_event_loop()
+    try:
+        future = asyncio.run_coroutine_threadsafe(coro, loop)
+        return future.result(timeout=60)  # Таймаут 60 секунд для инициализации
+    except asyncio.TimeoutError:
+        logger.error("Таймаут при выполнении async функции")
+        raise
+    except Exception as e:
+        logger.error(f"Ошибка при выполнении async функции: {e}", exc_info=True)
+        raise
 
 app = Flask(__name__)
 
@@ -178,10 +225,32 @@ class BotApplication:
         )
         
         self.application = Application.builder().token(bot_token).request(request).build()
+        
+        # Добавляем обработчики команд
         self.application.add_handler(CommandHandler("start", self.start_command))
         self.application.add_handler(CommandHandler("my_history", self.my_history_command))
+        
+        # Добавляем обработчики сообщений
         self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
         
+        # Добавляем обработчик ошибок
+        async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+            """Обработчик ошибок Telegram"""
+            logger.error(f"Ошибка в обработчике Telegram: {context.error}", exc_info=context.error)
+            
+            # Пытаемся отправить сообщение пользователю, если это возможно
+            if update and hasattr(update, 'effective_message') and update.effective_message:
+                try:
+                    await update.effective_message.reply_text(
+                        "❌ Произошла ошибка при обработке вашего запроса. Попробуйте позже.",
+                        reply_markup=bot_app.keyboard_factory.create_main_menu()
+                    )
+                except Exception as e:
+                    logger.error(f"Не удалось отправить сообщение об ошибке: {e}")
+        
+        self.application.add_error_handler(error_handler)
+        
+        # Инициализируем приложение
         await self.application.initialize()
         logger.info("✅ Telegram Application webhook готов")
 
@@ -191,14 +260,53 @@ bot_app = BotApplication()
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
+    """Обработчик webhook запросов от Telegram"""
     try:
+        # Проверяем, что бот инициализирован
+        if not bot_app.application:
+            logger.error("Бот не инициализирован")
+            return 'OK', 200
+        
+        # Получаем JSON данные от Telegram
         json_data = request.get_json(force=True)
-        update = Update.de_json(json_data, bot_app.application.bot)
-        asyncio.run(bot_app.application.process_update(update))
+        if not json_data:
+            logger.warning("Пустой JSON в webhook запросе")
+            return 'OK', 200
+        
+        # Создаем Update объект из JSON
+        try:
+            update = Update.de_json(json_data, bot_app.application.bot)
+            if not update:
+                logger.warning("Не удалось создать Update объект из JSON")
+                return 'OK', 200
+        except Exception as e:
+            logger.error(f"Ошибка при создании Update объекта: {e}", exc_info=True)
+            return 'OK', 200
+        
+        # Обрабатываем update в глобальном event loop
+        # Используем run_coroutine_threadsafe для запуска async кода из синхронного контекста Flask
+        try:
+            loop = get_event_loop()
+            # Запускаем обработку update асинхронно в глобальном event loop
+            # Не ждем результата (fire-and-forget), чтобы быстро ответить Telegram
+            future = asyncio.run_coroutine_threadsafe(
+                bot_app.application.process_update(update),
+                loop
+            )
+            # Не ждем результата - обработка будет происходить в фоне
+            # Telegram требует быстрый ответ (в течение 5 секунд)
+            logger.debug(f"Update {update.update_id} отправлен на обработку")
+        except Exception as e:
+            logger.error(f"Ошибка при запуске обработки update: {e}", exc_info=True)
+            # Все равно возвращаем OK, чтобы Telegram не отправлял повторно
+        
+        # Сразу возвращаем OK Telegram (Telegram требует ответ в течение 5 секунд)
         return 'OK', 200
+        
     except Exception as e:
-        logger.error(f"Ошибка webhook: {e}", exc_info=True)
-        return 'Error', 500
+        logger.error(f"Критическая ошибка в webhook handler: {e}", exc_info=True)
+        # Все равно возвращаем OK, чтобы Telegram не отправлял повторно
+        return 'OK', 200
 
 
 @app.route('/health', methods=['GET'])
@@ -236,8 +344,12 @@ def setup_webhook():
         logger.error("BOT_TOKEN не найден")
         return False
     
-    # Инициализируем бота перед установкой webhook
-    asyncio.run(bot_app.initialize())
+    # Инициализируем бота перед установкой webhook в глобальном event loop
+    try:
+        run_async(bot_app.initialize())
+    except Exception as e:
+        logger.error(f"Ошибка при инициализации бота: {e}", exc_info=True)
+        return False
     
     # Пытаемся получить webhook URL из переменных окружения
     webhook_url = os.getenv('WEBHOOK_URL')
