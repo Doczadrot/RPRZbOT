@@ -192,23 +192,192 @@ class BotApplication:
             await update.message.reply_text("Главное меню", reply_markup=self.keyboard_factory.create_main_menu())
             return
         
+        # Обработка основных функций
         if text in ["🚨❗ Сообщите об опасности", "❗ Сообщите об опасности"]:
             await self.danger_handler.handle(update, context)
         elif text in ["🏠🛡️ Ближайшее укрытие", "🏠 Ближайшее укрытие"]:
-            await update.message.reply_text(
-                "🏠 Ближайшее укрытие (заглушка)",
-                reply_markup=self.keyboard_factory.create_main_menu()
-            )
+            await self._handle_shelter_finder(update, context)
         elif text in ["🧑‍🏫📚 Консультант по безопасности РПРЗ", "🧑‍🏫 Консультант по безопасности РПРЗ"]:
-            await update.message.reply_text(
-                "🧑‍🏫 Консультант (заглушка)",
-                reply_markup=self.keyboard_factory.create_main_menu()
-            )
+            await self._handle_safety_consultant(update, context)
         else:
             await update.message.reply_text(
                 "Пожалуйста, выберите одну из предложенных функций.",
                 reply_markup=self.keyboard_factory.create_main_menu()
             )
+    
+    async def _handle_shelter_finder(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Обработчик поиска убежищ"""
+        user_id = update.effective_user.id
+        
+        # Логируем активность
+        self.logger.log_activity(user_id, update.effective_user.username, "shelter_finder_started")
+        
+        # Используем сервис для получения убежищ
+        shelters = self.shelter_service.get_shelters()
+        
+        if not shelters:
+            await update.message.reply_text(
+                "🏠 **Ближайшее укрытие**\n\n"
+                "Убежища не найдены. Обратитесь к администратору.",
+                reply_markup=self.keyboard_factory.create_main_menu(),
+                parse_mode='Markdown'
+            )
+            return
+        
+        # Отправляем информацию о первом убежище
+        await self.shelter_service.send_shelter_info(update, context, shelters[0])
+        
+        # Предлагаем отправить геолокацию для поиска ближайших
+        keyboard = [
+            ['📍 Отправить геолокацию'],
+            ['⬅️ Главное меню']
+        ]
+        from telegram import ReplyKeyboardMarkup
+        await update.message.reply_text(
+            "📍 Отправьте вашу геолокацию для поиска ближайших убежищ:",
+            reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+        )
+        
+        # Устанавливаем состояние ожидания геолокации
+        self.state_manager.set_user_state(user_id, {
+            'state': 'shelter_location',
+            'data': {}
+        })
+    
+    async def _handle_safety_consultant(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Обработчик консультанта по безопасности"""
+        user_id = update.effective_user.id
+        
+        # Логируем активность
+        self.logger.log_activity(user_id, update.effective_user.username, "safety_consultant_started")
+        
+        # Получаем список документов
+        documents = self.consultant_service.get_documents()
+        
+        if not documents:
+            await update.message.reply_text(
+                "🧑‍🏫 **Консультант по безопасности РПРЗ**\n\n"
+                "Документы не найдены. Обратитесь к администратору.",
+                reply_markup=self.keyboard_factory.create_main_menu(),
+                parse_mode='Markdown'
+            )
+            return
+        
+        # Формируем список документов
+        text = "🧑‍🏫 **Консультант по безопасности РПРЗ**\n\n"
+        text += "📚 Доступные документы:\n\n"
+        
+        for i, doc in enumerate(documents[:5], 1):  # Показываем первые 5
+            text += f"{i}. {doc.title}\n"
+        
+        keyboard = []
+        for i, doc in enumerate(documents[:5], 1):
+            keyboard.append([f"📄 {doc.title}"])
+        keyboard.append(['❓ Задать вопрос'])
+        keyboard.append(['⬅️ Главное меню'])
+        
+        from telegram import ReplyKeyboardMarkup
+        await update.message.reply_text(
+            text,
+            reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True),
+            parse_mode='Markdown'
+        )
+        
+        # Устанавливаем состояние для обработки выбора документа
+        self.state_manager.set_user_state(user_id, {
+            'state': 'consultant_document',
+            'data': {'documents': documents}
+        })
+    
+    async def handle_media(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Обработчик медиафайлов"""
+        user_id = update.effective_user.id
+        
+        # Проверяем, находится ли пользователь в состоянии ожидания медиафайлов
+        user_state = self.state_manager.get_user_state(user_id)
+        if user_state and user_state['state'] == 'danger_media':
+            await self._handle_danger_media(update, context)
+        else:
+            await update.message.reply_text(
+                "Пожалуйста, выберите функцию из главного меню.",
+                reply_markup=self.keyboard_factory.create_main_menu()
+            )
+    
+    async def _handle_danger_media(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Обработать медиафайлы для сообщения об опасности"""
+        user_id = update.effective_user.id
+        user_state = self.state_manager.get_user_state(user_id)
+        
+        if not user_state:
+            return
+        
+        data = user_state['data']
+        
+        if update.message.photo:
+            # Обрабатываем фото
+            file_id = update.message.photo[-1].file_id
+            file_size = update.message.photo[-1].file_size
+            file_type = 'photo'
+        elif update.message.video:
+            # Обрабатываем видео
+            file_id = update.message.video.file_id
+            file_size = update.message.video.file_size
+            file_type = 'video'
+        else:
+            await update.message.reply_text(
+                "Пожалуйста, прикрепите фото или видео, или нажмите 'Пропустить'",
+                reply_markup=self.keyboard_factory.create_media_buttons()
+            )
+            return
+        
+        # Проверяем размер файла
+        if not self.danger_service.validate_media_file(file_size, file_type):
+            max_size = "20 МБ" if file_type == 'photo' else "300 МБ"
+            await update.message.reply_text(
+                f"❌ Файл слишком большой. Максимальный размер {file_type}: {max_size}",
+                reply_markup=self.keyboard_factory.create_back_button()
+            )
+            return
+        
+        if 'media_files' not in data:
+            data['media_files'] = []
+        
+        data['media_files'].append({
+            'file_id': file_id,
+            'file_type': file_type,
+            'file_size': file_size
+        })
+        
+        await update.message.reply_text(
+            f"✅ {file_type == 'photo' and 'Фото' or 'Видео'} добавлено. Можете прикрепить еще файлы или продолжить.",
+            reply_markup=self.keyboard_factory.create_media_continue_buttons()
+        )
+    
+    async def handle_location(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Обработчик геолокации"""
+        user_id = update.effective_user.id
+        
+        # Проверяем, находится ли пользователь в состоянии ожидания геолокации
+        user_state = self.state_manager.get_user_state(user_id)
+        if user_state and user_state['state'] == 'shelter_location':
+            await self._handle_shelter_location(update, context)
+        else:
+            await update.message.reply_text(
+                "Пожалуйста, выберите функцию из главного меню.",
+                reply_markup=self.keyboard_factory.create_main_menu()
+            )
+    
+    async def _handle_shelter_location(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Обработать геолокацию для убежищ"""
+        user_id = update.effective_user.id
+        
+        if update.message.location:
+            logger.info(f"Геолокация пользователя {user_id}: {update.message.location.latitude}, {update.message.location.longitude}")
+        
+        await update.message.reply_text(
+            "📍 Геолокация получена. Функция поиска убежищ будет реализована в следующих версиях.",
+            reply_markup=self.keyboard_factory.create_main_menu()
+        )
     
     async def initialize(self):
         bot_token = os.getenv('BOT_TOKEN')
@@ -232,6 +401,8 @@ class BotApplication:
         
         # Добавляем обработчики сообщений
         self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
+        self.application.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, self.handle_media))
+        self.application.add_handler(MessageHandler(filters.LOCATION, self.handle_location))
         
         # Добавляем обработчик ошибок
         async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
