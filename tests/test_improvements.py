@@ -728,6 +728,184 @@ class TestBusSchedule(unittest.TestCase):
         self.assertTrue(result)
 
 
+class TestWebhookServerless(unittest.TestCase):
+    """Тесты для serverless webhook версии бота"""
+
+    def setUp(self):
+        """Настройка перед каждым тестом"""
+        self.app = None
+        try:
+            from bot.main_webhook import app
+            self.app = app
+            self.app.config['TESTING'] = True
+            self.client = app.test_client()
+        except ImportError:
+            self.skipTest("main_webhook module not available")
+
+    @patch("bot.main_webhook.init_bot")
+    @patch("bot.main_webhook.bot")
+    def test_index_endpoint(self, mock_bot, mock_init_bot):
+        """Тест главной страницы /"""
+        mock_init_bot.return_value = True
+        mock_bot.get_me.return_value = Mock(username="test_bot")
+        
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["status"], "online")
+        self.assertEqual(data["service"], "RPRZ Safety Bot")
+        self.assertEqual(data["mode"], "serverless")
+
+    @patch("bot.main_webhook.bot")
+    @patch("bot.main_webhook.BOT_TOKEN", "test_token")
+    def test_health_endpoint(self, mock_bot):
+        """Тест health check endpoint"""
+        mock_bot.get_webhook_info.return_value = Mock(
+            url="https://test.com/webhook",
+            pending_update_count=0
+        )
+        
+        response = self.client.get("/health")
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["status"], "healthy")
+        self.assertEqual(data["mode"], "serverless")
+        self.assertTrue(data["bot_token_set"])
+
+    @patch("bot.main_webhook.bot")
+    def test_webhook_endpoint_valid_json(self, mock_bot):
+        """Тест webhook endpoint с валидным JSON"""
+        # Создаем мок обновления от Telegram
+        update_data = {
+            "update_id": 123,
+            "message": {
+                "message_id": 1,
+                "from": {"id": 12345, "username": "test_user"},
+                "chat": {"id": 12345, "type": "private"},
+                "date": 1234567890,
+                "text": "/start"
+            }
+        }
+        
+        mock_bot.process_new_updates = Mock()
+        
+        response = self.client.post(
+            "/webhook",
+            json=update_data,
+            content_type="application/json"
+        )
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data["ok"])
+        mock_bot.process_new_updates.assert_called_once()
+
+    @patch("bot.main_webhook.bot")
+    def test_webhook_endpoint_invalid_content_type(self, mock_bot):
+        """Тест webhook endpoint с невалидным content-type"""
+        response = self.client.post(
+            "/webhook",
+            data="test",
+            content_type="text/plain"
+        )
+        
+        self.assertEqual(response.status_code, 400)
+        data = response.get_json()
+        self.assertIn("error", data)
+
+    @patch("bot.main_webhook.bot")
+    def test_webhook_endpoint_processing_error(self, mock_bot):
+        """Тест обработки ошибки при обработке обновления"""
+        update_data = {"update_id": 123}
+        
+        mock_bot.process_new_updates.side_effect = Exception("Processing error")
+        
+        response = self.client.post(
+            "/webhook",
+            json=update_data,
+            content_type="application/json"
+        )
+        
+        self.assertEqual(response.status_code, 500)
+        data = response.get_json()
+        self.assertFalse(data["ok"])
+        self.assertIn("error", data)
+
+    @patch("bot.main_webhook.bot")
+    def test_set_webhook_endpoint_success(self, mock_bot):
+        """Тест установки webhook через /set_webhook"""
+        mock_bot.remove_webhook = Mock()
+        mock_bot.set_webhook = Mock(return_value=True)
+        mock_bot.get_webhook_info = Mock(return_value=Mock(
+            url="https://test.com/webhook",
+            has_custom_certificate=False,
+            pending_update_count=0
+        ))
+        
+        response = self.client.post(
+            "/set_webhook",
+            json={"url": "https://test.com/webhook"},
+            content_type="application/json"
+        )
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(data["webhook_url"], "https://test.com/webhook")
+        mock_bot.set_webhook.assert_called_once_with(url="https://test.com/webhook")
+
+    @patch("bot.main_webhook.bot")
+    def test_set_webhook_endpoint_no_url(self, mock_bot):
+        """Тест установки webhook без URL"""
+        response = self.client.post(
+            "/set_webhook",
+            json={},
+            content_type="application/json"
+        )
+        
+        self.assertEqual(response.status_code, 400)
+        data = response.get_json()
+        self.assertIn("error", data)
+
+    @patch("bot.main_webhook.bot", None)
+    def test_set_webhook_endpoint_no_bot(self):
+        """Тест установки webhook когда бот не инициализирован"""
+        response = self.client.post(
+            "/set_webhook",
+            json={"url": "https://test.com/webhook"},
+            content_type="application/json"
+        )
+        
+        self.assertEqual(response.status_code, 500)
+        data = response.get_json()
+        self.assertIn("error", data)
+
+    @patch("bot.main_webhook.init_bot")
+    @patch("bot.main_webhook.load_placeholders")
+    @patch("bot.main_webhook.telebot.TeleBot")
+    def test_init_bot_success(self, mock_telebot, mock_load_placeholders, mock_init_bot):
+        """Тест успешной инициализации бота"""
+        from bot.main_webhook import init_bot
+        
+        mock_load_placeholders.return_value = {"shelters": []}
+        mock_bot_instance = Mock()
+        mock_bot_instance.get_me.return_value = Mock(username="test_bot")
+        mock_telebot.return_value = mock_bot_instance
+        
+        # Мокаем set_bot_instance
+        with patch("bot.main_webhook.set_bot_instance"):
+            result = init_bot()
+            self.assertTrue(result)
+
+    @patch("bot.main_webhook.BOT_TOKEN", None)
+    def test_init_bot_no_token(self):
+        """Тест инициализации бота без токена"""
+        from bot.main_webhook import init_bot
+        
+        result = init_bot()
+        self.assertFalse(result)
+
+
 class TestIntegration(unittest.TestCase):
     """Интеграционные тесты"""
 
