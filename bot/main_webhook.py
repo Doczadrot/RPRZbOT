@@ -6,6 +6,8 @@ Serverless версия бота для Railway Free Plan
 
 import os
 import sys
+import threading
+import time
 from pathlib import Path
 
 # Добавляем корневую папку в путь
@@ -17,6 +19,7 @@ import telebot
 from telebot.handler_backends import State, StatesGroup
 from telebot.storage import StateMemoryStorage
 from dotenv import load_dotenv
+import requests
 
 # Загружаем переменные окружения
 load_dotenv()
@@ -91,6 +94,91 @@ bot = None
 
 # Создаем Flask приложение для webhook
 app = Flask(__name__)
+
+# Флаг для keepalive механизма
+_keepalive_running = False
+_keepalive_thread = None
+
+
+def keepalive_worker():
+    """Периодически пингует /ping endpoint для предотвращения sleep mode на Railway"""
+    global _keepalive_running
+    
+    # Интервал пинга (каждые 5 минут)
+    ping_interval = int(os.getenv("KEEPALIVE_INTERVAL", 300))  # 5 минут по умолчанию
+    
+    # URL для пинга (Railway автоматически устанавливает эти переменные)
+    # Приоритет: RAILWAY_PUBLIC_DOMAIN > RAILWAY_STATIC_URL > PUBLIC_URL
+    base_url = (
+        os.getenv("RAILWAY_PUBLIC_DOMAIN") or 
+        os.getenv("RAILWAY_STATIC_URL") or 
+        os.getenv("PUBLIC_URL")
+    )
+    
+    if not base_url:
+        logger.warning("⚠️ KEEPALIVE: PUBLIC_URL не установлен, keepalive отключен")
+        logger.warning("   Railway автоматически устанавливает RAILWAY_PUBLIC_DOMAIN")
+        logger.warning("   Или установите переменную окружения PUBLIC_URL вручную")
+        return
+    
+    # Убираем протокол если есть
+    base_url = base_url.replace("https://", "").replace("http://", "")
+    ping_url = f"https://{base_url}/ping"
+    
+    logger.info(f"🔄 Keepalive активирован: пинг каждые {ping_interval} секунд")
+    logger.info(f"   URL: {ping_url}")
+    
+    while _keepalive_running:
+        try:
+            response = requests.get(ping_url, timeout=10)
+            if response.status_code == 200:
+                logger.debug(f"✅ Keepalive ping успешен: {response.json()}")
+            else:
+                logger.warning(f"⚠️ Keepalive ping вернул код {response.status_code}")
+        except Exception as e:
+            logger.error(f"❌ Ошибка keepalive ping: {e}")
+        
+        # Ждем перед следующим пингом
+        for _ in range(ping_interval):
+            if not _keepalive_running:
+                break
+            time.sleep(1)
+    
+    logger.info("🛑 Keepalive остановлен")
+
+
+def start_keepalive():
+    """Запускает keepalive механизм в отдельном потоке"""
+    global _keepalive_running, _keepalive_thread
+    
+    # Проверяем, нужно ли включать keepalive
+    enable_keepalive = os.getenv("ENABLE_KEEPALIVE", "true").lower() == "true"
+    
+    if not enable_keepalive:
+        logger.info("ℹ️ Keepalive отключен через ENABLE_KEEPALIVE=false")
+        return
+    
+    if _keepalive_running:
+        logger.warning("⚠️ Keepalive уже запущен")
+        return
+    
+    _keepalive_running = True
+    _keepalive_thread = threading.Thread(target=keepalive_worker, daemon=True)
+    _keepalive_thread.start()
+    logger.info("🚀 Keepalive поток запущен")
+
+
+def stop_keepalive():
+    """Останавливает keepalive механизм"""
+    global _keepalive_running, _keepalive_thread
+    
+    if not _keepalive_running:
+        return
+    
+    _keepalive_running = False
+    if _keepalive_thread:
+        _keepalive_thread.join(timeout=5)
+    logger.info("🛑 Keepalive остановлен")
 
 
 def init_bot():
@@ -181,6 +269,12 @@ def health():
         return jsonify({"status": "error", "error": str(e)}), 500
 
 
+@app.route("/ping", methods=["GET"])
+def ping():
+    """Простой ping endpoint для keepalive механизма Railway"""
+    return jsonify({"status": "pong", "timestamp": time.time()}), 200
+
+
 @app.route("/webhook", methods=["POST"])
 def webhook():
     """Webhook endpoint для получения обновлений от Telegram"""
@@ -241,6 +335,9 @@ logger.info("🚀 Инициализация serverless версии бота д
 if not init_bot():
     logger.error("❌ Не удалось инициализировать бота")
     # Не выходим здесь, чтобы gunicorn мог запуститься и показать ошибку в логах
+else:
+    # Запускаем keepalive механизм для предотвращения sleep mode на Railway
+    start_keepalive()
 
 if __name__ == "__main__":
     # Локальная разработка - используем Flask dev server
@@ -252,6 +349,7 @@ if __name__ == "__main__":
     logger.info(f"🌐 Запуск Flask сервера на порту {port}")
     logger.info("📡 Webhook endpoint: /webhook")
     logger.info("❤️ Health check: /health")
+    logger.info("🏓 Ping endpoint: /ping (для keepalive)")
     logger.info("🔧 Set webhook: POST /set_webhook")
     
     app.run(host="0.0.0.0", port=port, debug=False)
